@@ -1,0 +1,5 @@
+https://ffmpeg.org/download.html
+https://www.lua.org/
+https://luarocks.org/modules/argparse/argparse
+https://github.com/rust-av/Av1an
+https://aomedia.googlesource.com/aom/ (I have found aom with av1an is faster than svt. Rav1e would be a contender if it didn't use so much storage due to needing raw files.)
