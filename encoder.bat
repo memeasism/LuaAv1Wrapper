@@ -1,0 +1,1 @@
+lua "C:\Users\maver\git\LuaAv1Wrapper\encoder.lua" %*

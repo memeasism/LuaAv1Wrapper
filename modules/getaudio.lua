@@ -26,7 +26,7 @@ local oldcodec --prepares oldcodec
 
 local audiobitrate = 0 --prepares bitrate
 
-local passcmd = "-c:a copy" --the command used if audio is to be passed
+local passcmd = " -c:a copy" --the command used if audio is to be passed
 
 local opuscmd = " -c:a libopus"
 	.. ' -af aformat=channel_layouts="7.1|5.1|stereo"'

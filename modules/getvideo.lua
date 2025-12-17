@@ -35,7 +35,6 @@ local function getvideo(input, output, videoquality, filters, audiocmd)
 		.. noise
 		.. '"'
 		.. ' -f "'
-		.. string.gsub(filters, '"', "'") --detelecine and deinterlace filters will most likely not work, I always recommend encoding filters with ffv1 and then you encode the video to av1
 		.. '"'
 		.. ' --audio-params "'
 
