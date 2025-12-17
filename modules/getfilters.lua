@@ -40,13 +40,26 @@ local ivtc_slow
 
 local ivtc_field_order
 
-deinterlace_preset = deinterlace_presets[3]
-
-deinterlace_field_order = deinterlace_field_orders[1]
-
-ivtc_slow = ivtc_slows[1]
-
-ivtc_field_order = ivtc_field_orders[1]
+if args.deinterlace_preset then
+	deinterlace_preset = deinterlace_presets[tonumber(args.deinterlace_preset)]
+else
+	deinterlace_preset = deinterlace_presets[3]
+end
+if args.deintelace_field then
+	deinterlace_field_order = deinterlace_field_orders[tonumber(args.deintelace_field)]
+else
+	deinterlace_field_order = deinterlace_field_orders[1]
+end
+if args.ivtc_slow then
+	ivtc_slow = ivtc_slows[tonumber(args.ivtc_slow)]
+else
+	ivtc_slow = ivtc_slows[1]
+end
+if args.ivtc_field then
+	ivtc_field_order = ivtc_field_orders[tonumber(args.ivtc_field)]
+else
+	ivtc_field_order = ivtc_field_orders[1]
+end
 
 local vsscripts = {
 	"./VPScripts/ivtc.vpy",

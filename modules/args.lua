@@ -11,8 +11,20 @@ parser:option():name("-a --audio"):choices({ "opus", "flac" })
 parser:option():name("-q --videoquality"):description("cqp value 0-255, lower is higher quality but larger files")
 parser:option():name("-b --audiobitrate"):description("actual audio bitrate in bits or for kbps as such: 128k")
 parser:option():name("-n --noise"):description("CPU ONLY! value 0-50 0=off will denoise and do grain synthesis")
-parser:flag("-l --interlaced", "your video will be deinterlaced(may not work with cpu av1)")
-parser:flag("-t --telecine", "your video will be detelecined(may not work with cpu av1)")
+parser:flag("-l --interlaced", "your video will be deinterlaced.")
+parser:option("--deinterlace_field"):description(
+	"set field order for deinterlacing, options: 1-3, 1 is default/automatic, 2 is bottom field first, 3 is top field first."
+)
+parser:option("--deinterlace_preset"):description(
+	"set the preset used for deinterlacing, options 1-11, 3 is default, 1 is slowest but best quality, 11 is fastest and worst quality."
+)
+parser:flag("-t --telecine", "your video will be detelecined.")
+parser:option("--ivtc_field"):description(
+	"set field order for inverse telecine, options: 1-3, 1 is default/automatic, 2 is bottom field first, 3 is top field first."
+)
+parser
+	:option("--ivtc_slow")
+	:description("set speed for inverse telecine, options: 1-3, 1 is default higher number = faster")
 parser:flag("-c --cpu", "encode with cpu instead of gpu") --sets the actual arguments for the script
 
 local args = parser:parse() --parses arguments
