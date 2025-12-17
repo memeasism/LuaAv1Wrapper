@@ -25,9 +25,20 @@ if args.input and args.output ~= nil then
 
 	local base = 'ffmpeg -i "' .. input .. '"' .. " -map 0:v:0" .. " -map 0:a?" .. " -map 0:s?" .. " -c:s copy" --the base of the ffmpeg command
 
-	print(base .. filters .. videocmd .. audiocmd .. ' "' .. output .. '"') --prints command
+	if filters then
+		base = filters
+			.. 'ffmpeg -i - -i "'
+			.. input
+			.. '"'
+			.. " -map 0:v:0"
+			.. " -map 1:a?"
+			.. " -map 1:s?"
+			.. " -c:s copy"
+	end
 
-	os.execute(base .. filters .. videocmd .. audiocmd .. ' "' .. output .. '"') --executes command
+	print(base .. videocmd .. audiocmd .. ' "' .. output .. '"') --prints command
+
+	os.execute(base .. videocmd .. audiocmd .. ' "' .. output .. '"') --executes command
 else
 	print("you have to supply and input and output") --let user know they have to supply info to the script
 end

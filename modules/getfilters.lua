@@ -62,12 +62,13 @@ else
 end
 
 local vsscripts = {
-	"./VPScripts/ivtc.vpy",
-	"./VPScripts/di.vpy",
-	"./VPScripts/ivtc+di.vpy",
+	string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/ivtc.vpy",
+	string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/di.vpy",
+	string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/ivtc+di.vpy",
 } --vapoursynth scripts
 
 local function getfilters(input)
+	print(arg[0])
 	local filters
 
 	if args.telecine and args.interlaced then
