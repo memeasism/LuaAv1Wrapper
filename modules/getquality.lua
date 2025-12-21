@@ -1,6 +1,6 @@
-local args = require("args") --gets arguments
+local args = require("modules/args") --gets arguments
 
-local gpu = require("getgpu")
+local gpu = require("modules/getgpu")
 
 local qualityoptions = {
 

@@ -1,6 +1,6 @@
-local args = require("args") --gets arguments
+local args = require("modules/args") --gets arguments
 
-local gpu = require("getgpu") --gets gpu
+local gpu = require("modules/getgpu") --gets gpu
 
 local videocodec --prepares the videocodec
 

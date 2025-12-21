@@ -1,4 +1,4 @@
-local args = require("args") --gets arguments
+local args = require("modules/args") --gets arguments
 
 local deinterlace_presets = {
 	'"Placebo"',

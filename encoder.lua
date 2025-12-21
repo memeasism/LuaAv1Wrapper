@@ -1,14 +1,14 @@
-local args = require("args") --gets arguments
+local args = require("modules/args") --gets arguments
 
-local gpu = require("getgpu") --gets gpu
+local gpu = require("modules/getgpu") --gets gpu
 
-local getfilters = require("getfilters") --sets function modules
+local getfilters = require("modules/getfilters") --sets function modules
 
-local getquality = require("getquality")
+local getquality = require("modules/getquality")
 
-local getaudio = require("getaudio")
+local getaudio = require("modules/getaudio")
 
-local getvideo = require("getvideo")
+local getvideo = require("modules/getvideo")
 
 if args.input and args.output ~= nil then
 	local input = string.gsub(args.input, "\\", "/") --sets input
