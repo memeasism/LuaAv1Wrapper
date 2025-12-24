@@ -1,3 +1,5 @@
+local lfs = require("lfs")
+
 local args = require("modules/args") --gets arguments
 
 local gpu = require("modules/getgpu") --gets gpu
@@ -11,7 +13,12 @@ local getaudio = require("modules/getaudio")
 local getvideo = require("modules/getvideo")
 
 if args.input and args.output ~= nil then
-	local input = args.input --sets input
+
+  local parseinput = lfs.attributes(args.input)
+
+
+
+	local input = lfs.currentdir() .. "/" .. args.input --sets input as the full path to fix any errors vspipe may have
 
 	local output = args.output --sets output
 
