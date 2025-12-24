@@ -11,9 +11,9 @@ local getaudio = require("modules/getaudio")
 local getvideo = require("modules/getvideo")
 
 if args.input and args.output ~= nil then
-	local input = string.gsub(args.input, "\\", "/") --sets input
+	local input = args.input --sets input
 
-	local output = string.gsub(args.output, "\\", "/") --sets output
+	local output = args.output --sets output
 
 	local filters = getfilters(input) --gets filters
 
