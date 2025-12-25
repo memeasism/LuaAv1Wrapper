@@ -13,7 +13,6 @@ if args.noise ~= nil then
 	noise = args.noise
 end --sets noise to be what the user set
 local function getvideo(input, output, videoquality, filters, audiocmd)
-	print(filters)
 	local out
 	local ffv1cmd = " -c:v ffv1 -level 3" .. " -g 1" .. " -pix_fmt yuv420p10le"
 	local function cpucmd()
