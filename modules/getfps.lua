@@ -4,24 +4,16 @@ local function getfps(input)
 			.. input
 			.. '"'
 	) --command to get the fps of the source video
-
 	local fpsparsed = fpscmd:read("*a") --reads the fps
-
 	local fpsdividendtxt, fpsdivisortxt = string.match(fpsparsed, "(.*)%/(.*)") --filters the fps so it is only the number for certain
-
 	fpsdividendtxt = string.match(fpsdividendtxt, "%d+")
-
 	fpsdivisortxt = string.match(fpsdivisortxt, "%d+")
-
 	local fps = fpsdividendtxt .. "/" .. fpsdivisortxt
-
 	local fpstable = {
 		fps = fps,
 		fpsdividendtxt = fpsdividendtxt,
 		fpsdivisortxt = fpsdivisortxt,
 	}
-
 	return fpstable
 end
-
 return getfps

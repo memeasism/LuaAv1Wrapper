@@ -1,21 +1,12 @@
 local lfs = require("lfs")
-
 local args = require("modules/args") --gets arguments
-
 local getfilters = require("modules/getfilters") --sets function modules
-
 local getquality = require("modules/getquality")
-
 local getaudio = require("modules/getaudio")
-
 local getvideo = require("modules/getvideo")
-
 local extentions = require("modules/extentions")
-
 local input = {}
-
 local output = {}
-
 if args.input and args.output ~= nil then
 	if args.mass then
 		local temp_output = lfs.mkdir(args.output)
@@ -36,19 +27,13 @@ if args.input and args.output ~= nil then
 		end
 	else
 		table.insert(input, lfs.currentdir() .. "/" .. args.input) --sets input as the full path to fix any errors vspipe may have
-
 		table.insert(output, lfs.currentdir() .. "/" .. args.output) --sets output
 	end
-
 	for key, value in pairs(input) do
 		local filters = getfilters(value) --gets filters
-
 		local videoquality = getquality(value) --gets quality
-
 		local audiocmd = getaudio(value) --gets audiocmd
-
 		local videocmd = getvideo(value, output, videoquality, filters, audiocmd) --gets videocmd
-
 		local base = 'ffmpeg -i "'
 			.. value
 			.. '"'
@@ -58,7 +43,6 @@ if args.input and args.output ~= nil then
 			.. " -c:s copy"
 			.. " -fflags +genpts"
 			.. " -async 0" --the base of the ffmpeg command
-
 		if filters then
 			base = filters
 				.. 'ffmpeg -i - -i "'
@@ -71,9 +55,7 @@ if args.input and args.output ~= nil then
 				.. " -fflags +genpts"
 				.. " -async 0"
 		end
-
 		print(base .. videocmd .. audiocmd .. ' "' .. output[key] .. '"') --prints command
-
 		os.execute(base .. videocmd .. audiocmd .. ' "' .. output[key] .. '"') --executes command
 	end
 else

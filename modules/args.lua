@@ -1,9 +1,7 @@
 local argparse = require("argparse") --load argparse module
-
 local parser = argparse():name("encoder"):description("an open source encoding script"):epilog(
 	"All of these are optional except for -i and -o as this script is designed to find the best audio codec and bitrate by using ffprobe and also detects user gpu"
 ) --sets script arguments
-
 parser:option():name("-i --input")
 parser:option():name("-o --output")
 parser:option():name("-v --video"):choices({ "av1", "ffv1" })
@@ -27,7 +25,5 @@ parser
 	:option("--ivtc_slow")
 	:description("set speed for inverse telecine, options: 1-3, 1 is default higher number = faster")
 parser:flag("-c --cpu", "encode with cpu instead of gpu") --sets the actual arguments for the script
-
 local args = parser:parse() --parses arguments
-
 return args
