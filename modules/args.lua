@@ -22,6 +22,7 @@ parser:flag("-t --telecine", "your video will be detelecined.")
 parser:option("--ivtc_field"):description(
 	"set field order for inverse telecine, options: 1-3, 1 is default/automatic, 2 is bottom field first, 3 is top field first."
 )
+parser:flag("-m --mass", "encode an entire directory instead of just one file at a time")
 parser
 	:option("--ivtc_slow")
 	:description("set speed for inverse telecine, options: 1-3, 1 is default higher number = faster")

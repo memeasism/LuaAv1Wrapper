@@ -78,9 +78,8 @@ local function getaudio(input)
 		end
 
 		if audiocodec == nil then
-			print("couldn't find a programmed codec.")
-
-			os.exit()
+			print("couldn't find a programmed codec, passing through instead.")
+			audiopass = true
 		end
 	end --checks and sets audio codec
 
@@ -123,16 +122,19 @@ local function getaudio(input)
 			audiobitrate = maxbitrate / 2
 		end
 	end --decides bitrate and whether or not to just pass audio through.
-
-	if audiocodec == "opus" then
-		if audiopass == true then
-			audiocmd = passcmd
-		else
-			audiocmd = opuscmd
-		end
-	elseif audiocodec == "flac" then
-		audiocmd = flaccmd
-	end --sets audiocmd
+	if audiopass ~= true then
+		if audiocodec == "opus" then
+			if audiopass == true then
+				audiocmd = passcmd
+			else
+				audiocmd = opuscmd
+			end
+		elseif audiocodec == "flac" then
+			audiocmd = flaccmd
+		end --sets audiocmd
+	else
+		audiocmd = passcmd
+	end
 
 	return audiocmd
 end
