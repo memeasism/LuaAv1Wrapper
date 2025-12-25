@@ -49,7 +49,15 @@ if args.input and args.output ~= nil then
 
 		local videocmd = getvideo(value, output, videoquality, filters, audiocmd) --gets videocmd
 
-		local base = 'ffmpeg -i "' .. value .. '"' .. " -map 0:v:0" .. " -map 0:a?" .. " -map 0:s?" .. " -c:s copy" --the base of the ffmpeg command
+		local base = 'ffmpeg -i "'
+			.. value
+			.. '"'
+			.. " -map 0:v:0"
+			.. " -map 0:a?"
+			.. " -map 0:s?"
+			.. " -c:s copy"
+			.. " -fflags +genpts"
+			.. " -async 0" --the base of the ffmpeg command
 
 		if filters then
 			base = filters
@@ -60,6 +68,8 @@ if args.input and args.output ~= nil then
 				.. " -map 1:a?"
 				.. " -map 1:s?"
 				.. " -c:s copy"
+				.. " -fflags +genpts"
+				.. " -async 0"
 		end
 
 		print(base .. videocmd .. audiocmd .. ' "' .. output[key] .. '"') --prints command
