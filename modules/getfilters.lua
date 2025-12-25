@@ -1,4 +1,5 @@
 local args = require("modules/args") --gets arguments
+local getfps = require("modules/getfps")
 
 local deinterlace_presets = {
 	'"Placebo"',
@@ -68,8 +69,8 @@ local vsscripts = {
 } --vapoursynth scripts
 
 local function getfilters(input)
-	print(arg[0])
 	local filters
+	local fps = getfps(input)
 
 	if args.telecine and args.interlaced then
 		filters = "vspipe "
@@ -84,6 +85,10 @@ local function getfilters(input)
 			.. ivtc_slow
 			.. " -a ivtc_field_order="
 			.. ivtc_field_order
+			.. " -a fps_divisor="
+			.. fps.fpsdivisortxt
+			.. " -a fps_dividend="
+			.. fps.fpsdividendtxt
 			.. " - | "
 	elseif args.telecine then
 		filters = "vspipe "
@@ -94,6 +99,10 @@ local function getfilters(input)
 			.. ivtc_slow
 			.. " -a ivtc_field_order="
 			.. ivtc_field_order
+			.. " -a fps_divisor="
+			.. fps.fpsdivisortxt
+			.. " -a fps_dividend="
+			.. fps.fpsdividendtxt
 			.. " - | "
 	elseif args.interlaced then
 		filters = "vspipe "
@@ -104,6 +113,10 @@ local function getfilters(input)
 			.. deinterlace_preset
 			.. " -a deinterlace_field_order="
 			.. deinterlace_field_order
+			.. " -a fps_divisor="
+			.. fps.fpsdivisortxt
+			.. " -a fps_dividend="
+			.. fps.fpsdividendtxt
 			.. " - | "
 	end --sets filters according to arguments
 
