@@ -8,8 +8,8 @@ local function getfps(input)
 			.. input
 			.. '"'
 	) --command to get the fps of the source video
+	fpsparsed = fpscmd:read("*a") --reads the fps
 	if fpsparsed then
-		fpsparsed = fpscmd:read("*a") --reads the fps
 		fpsdividendtxt, fpsdivisortxt = string.match(fpsparsed, "(.*)%/(.*)") --filters the fps so it is only the number for certain
 		fpsdividendtxt = string.match(fpsdividendtxt, "%d+")
 		fpsdivisortxt = string.match(fpsdivisortxt, "%d+")
