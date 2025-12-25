@@ -60,53 +60,58 @@ local vsscripts = {
 local function getfilters(input)
 	local filters
 	local fps = getfps(input)
-	if args.telecine and args.interlaced then
-		filters = "vspipe "
-			.. vsscripts[3]
-			.. ' -c y4m -a video="'
-			.. input
-			.. '" -a deinterlace_preset='
-			.. deinterlace_preset
-			.. " -a deinterlace_field_order="
-			.. deinterlace_field_order
-			.. " -a ivtc_slow="
-			.. ivtc_slow
-			.. " -a ivtc_field_order="
-			.. ivtc_field_order
-			.. " -a fps_divisor="
-			.. fps.fpsdivisortxt
-			.. " -a fps_dividend="
-			.. fps.fpsdividendtxt
-			.. " - | "
-	elseif args.telecine then
-		filters = "vspipe "
-			.. vsscripts[1]
-			.. ' -c y4m -a video="'
-			.. input
-			.. '" -a ivtc_slow='
-			.. ivtc_slow
-			.. " -a ivtc_field_order="
-			.. ivtc_field_order
-			.. " -a fps_divisor="
-			.. fps.fpsdivisortxt
-			.. " -a fps_dividend="
-			.. fps.fpsdividendtxt
-			.. " - | "
-	elseif args.interlaced then
-		filters = "vspipe "
-			.. vsscripts[2]
-			.. ' -c y4m -a video="'
-			.. input
-			.. '" -a deinterlace_preset='
-			.. deinterlace_preset
-			.. " -a deinterlace_field_order="
-			.. deinterlace_field_order
-			.. " -a fps_divisor="
-			.. fps.fpsdivisortxt
-			.. " -a fps_dividend="
-			.. fps.fpsdividendtxt
-			.. " - | "
-	end --sets filters according to arguments
+	if fps then
+		if args.telecine and args.interlaced then
+			filters = "vspipe "
+				.. vsscripts[3]
+				.. ' -c y4m -a video="'
+				.. input
+				.. '" -a deinterlace_preset='
+				.. deinterlace_preset
+				.. " -a deinterlace_field_order="
+				.. deinterlace_field_order
+				.. " -a ivtc_slow="
+				.. ivtc_slow
+				.. " -a ivtc_field_order="
+				.. ivtc_field_order
+				.. " -a fps_divisor="
+				.. fps.fpsdivisortxt
+				.. " -a fps_dividend="
+				.. fps.fpsdividendtxt
+				.. " - | "
+		elseif args.telecine then
+			filters = "vspipe "
+				.. vsscripts[1]
+				.. ' -c y4m -a video="'
+				.. input
+				.. '" -a ivtc_slow='
+				.. ivtc_slow
+				.. " -a ivtc_field_order="
+				.. ivtc_field_order
+				.. " -a fps_divisor="
+				.. fps.fpsdivisortxt
+				.. " -a fps_dividend="
+				.. fps.fpsdividendtxt
+				.. " - | "
+		elseif args.interlaced then
+			filters = "vspipe "
+				.. vsscripts[2]
+				.. ' -c y4m -a video="'
+				.. input
+				.. '" -a deinterlace_preset='
+				.. deinterlace_preset
+				.. " -a deinterlace_field_order="
+				.. deinterlace_field_order
+				.. " -a fps_divisor="
+				.. fps.fpsdivisortxt
+				.. " -a fps_dividend="
+				.. fps.fpsdividendtxt
+				.. " - | "
+		else
+		end --sets filters according to arguments
+	else
+		filters = nil
+	end
 	return filters
 end
 return getfilters
