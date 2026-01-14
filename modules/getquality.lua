@@ -8,9 +8,9 @@ local qualityoptions = {
 	}, --CPU quality options
 
 	intel = {
-		SD = 18,
-		HD = 18,
-		UHD = 22,
+		SD = 16,
+		HD = 16,
+		UHD = 20,
 	}, --Intel GPU quality options
 }
 local videoquality = args.videoquality
@@ -31,13 +31,13 @@ local function getquality(input)
 			if gpu == 1 then
 				videoquality = qualityoptions.intel.HD
 			elseif gpu == 0 then
-				videoquality = qualityoptions.cpu.SD
+				videoquality = qualityoptions.cpu.HD
 			end
 		elseif resnumber >= 2160 then
 			if gpu == 1 then
 				videoquality = qualityoptions.intel.UHD
 			elseif gpu == 0 then
-				videoquality = qualityoptions.cpu.SD
+				videoquality = qualityoptions.cpu.UHD
 			end
 		end
 	end --sets the video quality relative to the resolution

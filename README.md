@@ -3,7 +3,7 @@
 LuaAv1Wrapper
 </h1>
 <p>
-A lua script that is a basic wrapper for ffmpeg and is designed to just be an easy way to encode videos to an open source format.
+A lua script that is a basic wrapper for ffmpeg and is designed to just be an easy way to encode videos visually losslessly(Scarface was benchmark and resulted in larger files) to an open source format.
 </p>
 <h3>
 Current Support
