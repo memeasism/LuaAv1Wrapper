@@ -1,6 +1,7 @@
 local args = require("modules/args") --gets arguments
 local gpu = require("modules/getgpu") --gets gpu
 local getfilters = require("modules/getfilters")
+local getfps = require("modules/getfps")
 local videocodec --prepares the videocodec
 if args.video then
 	videocodec = args.video
@@ -16,9 +17,17 @@ local function getvideo(input, output, videoquality, filters, audiocmd)
 	local out
 	local ffv1cmd = " -c:v ffv1 -level 3" .. " -g 1" .. " -pix_fmt yuv420p10le"
 	local function cpucmd()
+		local fps = getfps(input)
 		local command
 		command = 'av1an -i "' --av1an is only for constant frame rate, the good news is that my script saves all videos as constant frame rate, you may have to run with ffv1 before using av1 though.
+			.. string.gsub(arg[0], "encoder.lua", "")
+			.. "/VPScripts/passthrough.vpy"
+			.. '" --vspipe-args "video='
 			.. input
+			.. '" "fps_divisor='
+			.. fps.fpsdivisortxt
+			.. '" "fps_dividend='
+			.. fps.fpsdividendtxt
 			.. '"'
 			.. ' -o "'
 			.. out
