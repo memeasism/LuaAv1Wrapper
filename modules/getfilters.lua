@@ -10,9 +10,25 @@ local ivtc_field_orders = {
 	0, --bottom field first
 	1, --top field first
 } --ivtc field order 1-3
+local interlace_field_orders = {
+	"True",
+	"False",
+}
+local interlace_presets = {
+	"Placebo",
+	"Very Slow",
+	"Slower",
+	"Slow",
+	"Medium",
+	"Fast",
+	"Faster",
+	"Very Fast",
+	"Super Fast",
+	"Ultra Fast",
+	"Draft",
+}
 local deinterlace_preset
-local deinterlace_field_order
-local ivtc_slow
+local deinterlace_BFF
 local ivtc_field_order
 if args.ivtc_slow then
 	ivtc_slow = ivtc_slows[tonumber(args.ivtc_slow)]
@@ -23,6 +39,16 @@ if args.ivtc_field then
 	ivtc_field_order = ivtc_field_orders[tonumber(args.ivtc_field)]
 else
 	ivtc_field_order = ivtc_field_orders[1]
+end
+if args.deinterlace_bff then
+	deinterlace_BFF = interlace_field_orders[2]
+else
+	deinterlace_BFF = interlace_field_orders[1]
+end
+if args.deinterlace_preset then
+	deinterlace_preset = interlace_presets[tonumber(args.deinterlace_preset)]
+else
+	deinterlace_preset = interlace_presets[3]
 end
 local vsscripts = {
 	string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/ivtc.vpy",
@@ -46,7 +72,11 @@ local function getfilters(input)
 				.. fps.fpsdivisortxt
 				.. " -a fps_dividend="
 				.. fps.fpsdividendtxt
-				.. " - | "
+				.. " -a deinterlace_bff="
+				.. deinterlace_BFF
+				.. ' -a deinterlace_preset="'
+				.. deinterlace_preset
+				.. '" - | '
 		elseif args.telecine then
 			filters = "vspipe "
 				.. vsscripts[1]
@@ -70,7 +100,11 @@ local function getfilters(input)
 				.. fps.fpsdivisortxt
 				.. " -a fps_dividend="
 				.. fps.fpsdividendtxt
-				.. " - | "
+				.. " -a deinterlace_bff="
+				.. deinterlace_BFF
+				.. ' -a deinterlace_preset="'
+				.. deinterlace_preset
+				.. '" - | '
 		else
 		end --sets filters according to arguments
 	else
