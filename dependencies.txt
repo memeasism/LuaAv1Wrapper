@@ -7,3 +7,4 @@ https://aomedia.googlesource.com/aom/ (I have found aom with av1an is faster tha
 https://www.vapoursynth.com/
 https://github.com/FFMS/ffms2
 https://github.com/Jaded-Encoding-Thaumaturgy/vs-jetpack
+https://github.com/Selur/VapoursynthScriptsInHybrid/blob/master/qtgmc.py --I swapped to this qtgmc for hardware acceleration with OpenCL, it has some other benefits though
