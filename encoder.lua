@@ -1,5 +1,6 @@
 local lfs = require("lfs")
-print(package.cpath)local args = require("modules/args") --gets arguments
+print(package.cpath)
+local args = require("modules/args") --gets arguments
 local getfilters = require("modules/getfilters") --sets function modules
 local getquality = require("modules/getquality")
 local getaudio = require("modules/getaudio")
@@ -39,7 +40,9 @@ if args.input and args.output ~= nil then
 		local base = 'ffmpeg -i "'
 			.. value
 			.. '"'
-			.. [[ -filter_complex "[0:v]setdar=]] .. aspect .. '"'
+			.. [[ -filter_complex "[0:v]setdar=]]
+			.. aspect
+			.. '"'
 			.. " -map 0:v:0"
 			.. " -map 0:a?"
 			.. " -map 0:s?"
@@ -51,7 +54,9 @@ if args.input and args.output ~= nil then
 				.. 'ffmpeg -i - -i "'
 				.. value
 				.. '"'
-				.. [[ -filter_complex "[0:v]setdar=]] .. aspect .. [["]]
+				.. [[ -filter_complex "[0:v]setdar=]]
+				.. aspect
+				.. [["]]
 				.. " -map 0:v:0"
 				.. " -map 1:a?"
 				.. " -map 1:s?"
