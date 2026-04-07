@@ -6,5 +6,11 @@ https://github.com/rust-av/Av1an
 https://aomedia.googlesource.com/aom/ (I have found aom with av1an is faster than svt. Rav1e would be a contender if it didn't use so much storage due to needing raw files.)
 https://www.vapoursynth.com/
 https://github.com/FFMS/ffms2
-https://github.com/Jaded-Encoding-Thaumaturgy/vs-jetpack
-https://github.com/Selur/VapoursynthScriptsInHybrid/blob/master/qtgmc.py --I swapped to this qtgmc for hardware acceleration with OpenCL, it has some other benefits though
+https://github.com/Selur/VapoursynthScriptsInHybrid/blob/master/qtgmc.py
+https://github.com/HomeOfVapourSynthEvolution/VapourSynth-NNEDI3CL
+http://avisynth.nl/index.php/EEDI3CL
+https://github.com/AkarinVS/vapoursynth-plugin
+https://github.com/AmusementClub/vs-nlm-cuda
+https://github.com/Khanattila/KNLMeansCL
+https://github.com/AmusementClub/vs-dfttest2
+https://github.com/adworacz/zsmooth
