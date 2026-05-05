@@ -9,7 +9,7 @@ local function getsize(input)
 			.. input
 			.. '"'
 	)
-	local aspect = aspectprobe:read("a")
+	local aspect = aspectprobe:read("*l")
 	aspect = aspect:gsub("%s+", "")
 	aspect = aspect:gsub(":", "/")
 	print(aspect)
