@@ -34,7 +34,7 @@ local function getvideo(input, output, videoquality, fpstable, filters, audiocmd
 			.. pl.utils.quote_arg(out)
 		return command
 	end
-	local function cpucmd(out)
+	local function cpucmd(out, quality)
 		local command
 		command = "av1an -i " --av1an is only for constant frame rate, the good news is that my script saves all videos as constant frame rate, you may have to run with ffv1 before using av1 though.
 			.. filters.av1an
@@ -43,11 +43,26 @@ local function getvideo(input, output, videoquality, fpstable, filters, audiocmd
 			.. " -o "
 			.. pl.utils.quote_arg(out)
 			.. " --temp tmp"
-			.. ' -e "aom"'
+			.. " -e "
+			.. pl.utils.quote_arg("aom")
 			.. " --pix-format yuv420p10le"
-			.. " --target-metric vmaf --target-quality 98"
+			.. " --target-metric vmaf --target-quality 97 --max-tries 10" --set max tries to 10 because i found 3 seems to be too little sometimes
 			.. " -v "
 			.. pl.utils.quote_arg(" --denoise-noise-level=" .. noise)
+		if quality then
+			command = "av1an -i " --av1an is only for constant frame rate, the good news is that my script saves all videos as constant frame rate, you may have to run with ffv1 before using av1 though.
+				.. filters.av1an
+				.. " --proxy "
+				.. filters.proxy
+				.. " -o "
+				.. pl.utils.quote_arg(out)
+				.. " --temp tmp"
+				.. " -e "
+				.. pl.utils.quote_arg("aom")
+				.. " --pix-format yuv420p10le"
+				.. " -v "
+				.. pl.utils.quote_arg(" --cq-level=" .. quality .. "--denoise-noise-level=" .. noise)
+		end
 		return command
 	end
 	local function intelcmd(quality)
@@ -72,13 +87,25 @@ local function getvideo(input, output, videoquality, fpstable, filters, audiocmd
 		if gpu == 0 then
 			for key, value in pairs(output) do
 				local file = value .. "_temp.mkv"
+
 				videocmd = cpucmd(file)
+				local fallbackcmd = cpucmd(file, videoquality)
 				remuxcmd = remux(value, file)
-				print(videocmd)
-				os.execute(videocmd)
+				if args.videoquality then
+					print(fallbackcmd)
+					os.execute(fallbackcmd)
+				else
+					print(videocmd)
+					os.execute(videocmd)
+				end
 				if not pl.file.read(file) then
-					print("Intermediary file not found!")
-					pl.utils.quit()
+					print("Intermediary file not found! Running fallback command")
+					print(fallbackcmd)
+					os.execute(fallbackcmd)
+					if not pl.file.read(file) then
+						print("Fallback command failed, exiting script")
+						pl.utils.quit()
+					end
 				end
 				print("Encoding audio and copying subtitles to the output file")
 				print(remuxcmd)

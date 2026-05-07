@@ -19,18 +19,24 @@ local function getquality(input, ffprobe, gpu, args)
 		return "error"
 	end
 	if not videoquality then
-		if gpu == 0 then
-			videoquality = "cpu"
-		end
 		if resnumber <= 480 then
+			if gpu == 0 then
+				videoquality = qualityoptions.cpu.SD
+			end
 			if gpu == 1 then
 				videoquality = qualityoptions.intel.SD
 			end
 		elseif resnumber <= 1080 then
+			if gpu == 0 then
+				videoquality = qualityoptions.cpu.HD
+			end
 			if gpu == 1 then
 				videoquality = qualityoptions.intel.HD
 			end
 		elseif resnumber <= 2160 then
+			if gpu == 0 then
+				videoquality = qualityoptions.cpu.UHD
+			end
 			if gpu == 1 then
 				videoquality = qualityoptions.intel.UHD
 			end
