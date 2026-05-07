@@ -11,18 +11,9 @@ parser:option():name("-b --audiobitrate"):description("actual audio bitrate in b
 parser:option():name("-n --noise"):description("CPU ONLY! value 0-50 0=off will denoise and do grain synthesis")
 parser:flag("-l --interlaced", "your video will be deinterlaced.")
 parser:flag("--deinterlace_bff", "Default for interlacing is top field first, so use this for bottom field first")
-parser
-	:option()
-	:name("--deinterlace_preset")
-	:description("Change quality/speed of deinterlacing, 1-11, the lower the number, the better the quality")
 parser:flag("-t --telecine", "your video will be detelecined.")
-parser:option("--ivtc_field"):description(
-	"set field order for inverse telecine, options: 1-3, 1 is default/automatic, 2 is bottom field first, 3 is top field first."
-)
+parser:flag("--ivtc_bff", "Default for inverse telecine is top field first, so use this for bottom field first")
 parser:flag("-m --mass", "encode an entire directory instead of just one file at a time")
-parser
-	:option("--ivtc_slow")
-	:description("set speed for inverse telecine, options: 1-3, 1 is default higher number = faster")
 parser:flag("-c --cpu", "encode with cpu instead of gpu") --sets the actual arguments for the script
 local args = parser:parse() --parses arguments
 return args
