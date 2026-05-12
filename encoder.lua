@@ -38,7 +38,6 @@ if args.mass or pl.path.isdir(video) then
 	pl.path.mkdir(output_folder)
 	for file in pl.path.dir(folder) do
 		local input_format = pl.path.extension(file)
-		print(input_format)
 		for key, ext in pairs(extentions) do
 			if string.match(input_format, ext) then
 				local input_string = pl.path.join(folder, file)
@@ -89,7 +88,7 @@ for key, file in pairs(input) do
 	elseif ffprobe.video.streams[1] then
 		--pl.pretty.dump(ffprobe.video.streams[1])
 		--pl.utils.quit()
-		local audiocmd, output = getaudio(file, output[1], no_flac_extensions, ffprobe, args, pl) --gets audiocmd
+		local audiocmd, output = getaudio(file, output[key], no_flac_extensions, ffprobe, args, pl) --gets audiocmd
 		if not pl.path.isfile(output) then
 			local gpu = getgpu(args, pl)
 			local content = getfields(file, args, pl)
