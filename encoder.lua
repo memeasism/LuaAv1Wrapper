@@ -13,8 +13,7 @@ extentions = extentions.exensions
 local getsize = require("modules/getsize")
 local getffprobe = require("modules/ffprobe")
 local getgpu = require("modules/getgpu")
-local getvmaf = require("modules/getvmaf")
-local output_format = ".webm" --Amazing open standard that supports opus better than mkv
+local output_format = ".webm"
 if args.video == "ffv1" then
 	output_format = ".mkv"
 end
@@ -39,6 +38,7 @@ if args.mass or pl.path.isdir(video) then
 	pl.path.mkdir(output_folder)
 	for file in pl.path.dir(folder) do
 		local input_format = pl.path.extension(file)
+		print(input_format)
 		for key, ext in pairs(extentions) do
 			if string.match(input_format, ext) then
 				local input_string = pl.path.join(folder, file)
@@ -107,7 +107,6 @@ for key, file in pairs(input) do
 				ffprobe,
 				gpu,
 				aspect,
-				getvmaf,
 				args,
 				pl,
 				cjson

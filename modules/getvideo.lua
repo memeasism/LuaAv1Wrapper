@@ -9,7 +9,6 @@ local function getvideo(
 	ffprobe,
 	gpu,
 	aspect,
-	get_vmaf,
 	args,
 	pl,
 	cjson
