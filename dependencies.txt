@@ -1,11 +1,9 @@
-https://ffmpeg.org/download.html (you need to make sure it supports VMAF, I actually reccomend you do download the latest release non shared from https://www.gyan.dev/ffmpeg/builds/ )
+https://ffmpeg.org/download.html (you need to make sure it supports VMAF, I actually recommend you do download the latest release non shared from https://www.gyan.dev/ffmpeg/builds/ )
 https://www.lua.org/
-https://luarocks.org/modules/argparse/argparse
 https://lunarmodules.github.io/luafilesystem/index.html
 https://kyne.au/~mark/software/lua-cjson.php
 https://github.com/lunarmodules/Penlight
-https://mascarenhas.github.io/alien/
-https://github.com/rust-av/Av1an
+https://github.com/rust-av/Av1an (Used for both GPU and CPU encoding! for GPU I use it to chunk videos so I can replicate the target VMAF but on GPU)
 https://aomedia.googlesource.com/aom/
 https://www.vapoursynth.com/
 https://github.com/FFMS/ffms2
