@@ -49,5 +49,10 @@ local extentions = {
 		"m2ts",
 		"mts",
 	},
+	no_subtitle_extensions = {
+		"webm",
+		"avi",
+		"mp4",
+	},
 }
 return extentions

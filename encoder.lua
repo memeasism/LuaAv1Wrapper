@@ -9,12 +9,13 @@ local getvideo = require("modules/getvideo")
 local getfields = require("modules/getfields")
 local extentions = require("modules/extentions")
 local no_flac_extensions = extentions.no_flac_extensions
+local no_subtitle_extensions = extentions.no_subtitle_extensions
 extentions = extentions.exensions
 local getsize = require("modules/getsize")
 local getffprobe = require("modules/ffprobe")
 local getgpu = require("modules/getgpu")
 local output_format = ".webm"
-if args.video == "ffv1" then
+if args.video == "ffv1" or args.mkv then
 	output_format = ".mkv"
 end
 local video = pl.path.normpath(args.input)
@@ -57,7 +58,7 @@ else
 	local input_string = pl.path.abspath(video)
 	local input_alone = string.gsub(pl.path.basename(video), pl.path.extension(video), "")
 	local output_string
-	local fallback_string = pl.path.join(currentdir, string.format([[%s%s%s]], input_alone, out, output_format))
+	local fallback_string = pl.path.join(currentdir, string.format([[%s_%s%s]], input_alone, out, output_format))
 	if not (pl.path.isfile(fallback_string) or pl.path.isfile(out)) then
 		for key, ext in pairs(extentions) do
 			if string.match(video, ext) then
@@ -106,6 +107,7 @@ for key, file in pairs(input) do
 				ffprobe,
 				gpu,
 				aspect,
+				no_subtitle_extensions,
 				args,
 				pl,
 				cjson

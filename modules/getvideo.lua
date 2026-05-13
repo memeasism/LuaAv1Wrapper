@@ -9,6 +9,7 @@ local function getvideo(
 	ffprobe,
 	gpu,
 	aspect,
+	no_subtitle_extensions,
 	args,
 	pl,
 	cjson
@@ -22,6 +23,16 @@ local function getvideo(
 	end
 	local video_quality = args.videoquality
 	local video_codec = args.video --prepares the videocodec
+	local output_format = pl.path.extension(output)
+	local skip_subtitles
+	for key, value in pairs(no_subtitle_extensions) do
+		if string.match(output_format, value) then
+			skip_subtitles = "-sn"
+		end
+	end
+	if not skip_subtitles then
+		skip_subtitles = ""
+	end
 	local video_command --prepares the videocmd
 	local remux_command
 	local fallback_command
@@ -55,10 +66,11 @@ local function getvideo(
 	end
 	local function base(vspipe, file)
 		local command = string.format(
-			[[%s ffmpeg -i "%s" -f yuv4mpegpipe -i pipe: -filter_complex "[1:v:0]setdar=%s" -map 1:v:0 -map 0:a? -map 0:s? -c:s copy -fflags +genpts -async 0]],
+			[[%s ffmpeg -i "%s" -f yuv4mpegpipe -i pipe: -filter_complex "[1:v:0]setdar=%s" -map 1:v:0 -map 0:a? -map 0:s? -c:s copy %s -fflags +genpts -async 0]],
 			vspipe,
 			file,
-			aspect
+			aspect,
+			skip_subtitles
 		)
 		return command
 	end
@@ -66,12 +78,12 @@ local function getvideo(
 	local function remux(file)
 		local command
 		command = string.format(
-			[[ffmpeg -i "%s" -i "%s" -map 0:v:0 -map 1:a? -map 1:s? -c:v copy -aspect %s -metadata:s:v display_aspect_ratio=%s -c:s copy -fflags +genpts -async 0 %s "%s"]],
+			[[ffmpeg i "%s" -i "%s" -map 0:v:0 -map 1:a? -map 1:s? -c:v copy -aspect %s -c:s copy -fflags +genpts -async 0  %s %s "%s"]],
 			file,
 			input,
 			string.gsub(aspect, "/", ":"),
-			aspect,
 			audio_cmd,
+			skip_subtitles,
 			output
 		)
 		return command
