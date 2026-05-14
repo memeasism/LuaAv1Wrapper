@@ -120,15 +120,15 @@ local function getfilters(input, content, fps, args, pl)
 		return "error"
 	end
 	local filters = {
-		ffmpeg = "vspipe " .. vsscripts[filter] .. " -c y4m " .. table.concat(
+		ffmpeg = "vspipe " .. pl.path.normpath(vsscripts[filter]) .. " -c y4m " .. table.concat(
 			pl.tablex.map(formatffmpeg, attributes[filter]),
 			" "
 		) .. " - | ",
-		av1an = pl.utils.quote_arg(vsscripts[filter])
+		av1an = pl.utils.quote_arg(pl.path.normpath(vsscripts[filter]))
 			.. " --vspipe-args "
 			.. table.concat(pl.tablex.map(formatav1an, attributes[filter]), " "),
 		proxy = {
-			av1an = pl.utils.quote_arg(vsscripts[proxy])
+			av1an = pl.utils.quote_arg(pl.path.normpath(vsscripts[proxy]))
 				.. " --vspipe-args "
 				.. table.concat(pl.tablex.map(formatav1an, attributes[proxy]), " "),
 			ffmpeg = "vspipe " .. vsscripts[filter] .. " -c y4m " .. table.concat(

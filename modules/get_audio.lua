@@ -62,7 +62,7 @@ local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
 			audiopass = true
 		end
 	end --checks and sets audio codec
-	if audiocodec == "opus" and audiobitrate == 0 then
+	if audiocodec ~= "opus" and audiobitrate == 0 then
 		if not audioprobe.bit_rate then
 			print("Could not find original audio bitrate, setting to safe default")
 			audiobitrate = 128000
