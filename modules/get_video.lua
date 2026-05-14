@@ -31,8 +31,12 @@ local function getvideo(
 	local video_command
 	local remux_command
 	local no_vmaf_command
+	local workers = args.workers
 	local noise = args.noise
 	--set values according to certain factors
+	if not workers then
+		workers = 0
+	end
 	local function vmaf_range(start, stop)
 		local result = {}
 		for v = start, stop, -1 do
@@ -95,20 +99,22 @@ local function getvideo(
 	local function cpu_command(out, target_vmaf, quality)
 		local command
 		command = string.format(
-			[[av1an -i %s --proxy %s -o "%s" --temp tmp -e "aom" --pix-format yuv420p10le --scenes %s --target-metric vmaf --target-quality %s -v "--denoise-noise-level=%s"]],
+			[[av1an -i %s --proxy %s -o "%s" --workers %s --temp tmp -e "aom" --pix-format yuv420p10le --scenes %s --target-metric vmaf --target-quality %s -v "--denoise-noise-level=%s"]],
 			filters.av1an,
 			filters.proxy.av1an,
 			out,
+			workers,
 			json,
 			target_vmaf,
 			noise
 		)
 		if quality then
 			command = string.format(
-				[[av1an -i %s --proxy %s -o "%s" --temp tmp -e "aom" --pix-format yuv420p10le --scenes %s --target-metric vmaf --target-quality %s -v "--cq-level=%s --denoise-noise-level=%s"]],
+				[[av1an -i %s --proxy %s -o "%s" --workers %s --temp tmp -e "aom" --pix-format yuv420p10le --scenes %s --target-metric vmaf --target-quality %s -v "--cq-level=%s --denoise-noise-level=%s"]],
 				filters.av1an,
 				filters.proxy.av1an,
 				out,
+				workers,
 				json,
 				vmaf,
 				quality,
@@ -324,23 +330,23 @@ local function getvideo(
 			pl.file.delete(json)
 			video_command = "skip"
 			skip_vmaf = true
-		end
-
-		if gpu == 1 then
-			video_command = intel_cmd
-		end
-		--[[if gpu == 2 then
+		else
+			if gpu == 1 then
+				video_command = intel_cmd
+			end
+			--[[if gpu == 2 then
 			video_command = amdcmd
 		end
 		if gpu == 3 then
 			video_command = nvidiacmd
 		end]]
-		if not (video_quality or skip_vmaf) then
-			video_quality = find_vmaf()
-		else
-			video_quality = get_quality(input, ffprobe, gpu, args, pl)
+			if not (video_quality or skip_vmaf) then
+				video_quality = find_vmaf()
+			else
+				video_quality = get_quality(input, ffprobe, gpu, args, pl)
+			end
+			video_command = video_command(video_quality)
 		end
-		video_command = video_command(video_quality)
 	end
 	if video_codec == "ffv1" then
 		video_command = ffv1_command
