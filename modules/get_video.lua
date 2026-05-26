@@ -45,7 +45,7 @@ local function getvideo(
 		return result
 	end
 	vmaf = vmaf_range(
-		97 --[[(Start)From my understanding the optimal "visually lossless" VMAF score]],
+		98 --[[(Start)From my understanding the optimal "visually lossless" VMAF score]],
 		80 --[[(Stop) just picked a low vmaf number]]
 	)
 	for key, value in pairs(no_subtitle_extensions) do

@@ -7,7 +7,7 @@ A lua script that is a basic wrapper for ffmpeg and is designed to just be an ea
 
 Automatically detects the optimal quality for a video via VMAF, by default it starts at vmaf 97 and goes down to 80, so although advertised as visually lossless, it's not 100% true, just the best possible quality.
 
-The modules/getquality file includes tables of values that the output will use as a fallback if attempting to get the best possible vmaf fails, these values are based off of encoding the Beauty and Jockey videos from https://github.com/ultravideo/UVG-4K-Dataset to a VMAF of 97 or the highest possible VMAF that's under it, non floating point, so if 97 fails, we try for 96.
+The modules/getquality file includes tables of values that the output will use as a fallback if attempting to get the best possible vmaf fails, these values are based off of encoding the Beauty and Jockey videos from https://github.com/ultravideo/UVG-4K-Dataset to a VMAF of 98 or the highest possible VMAF that's under it, non floating point, so if 98 fails, we try for 97.
 </p>
 <h3>
 Current Support
