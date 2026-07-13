@@ -6,7 +6,31 @@ local function getfilters(input, args)
 	local telecine_bff = args.ivtc_bff
 	local is_interlaced = args.interlaced
 	local interlaced_bff = args.deinterlace_bff
-	if not (is_progressive or telecine_bff or interlaced_bff) then
+	if is_telecine then
+		if telecine_bff then
+			content = "Telecined BFF"
+		else
+			content = "Telecined TFF"
+		end
+	end
+	if is_interlaced then
+		if interlaced_bff then
+			content = "Interlaced BFF"
+		else
+			content = "Interlaced TFF"
+		end
+	end
+	if is_progressive then
+		content = "Progressive"
+	end
+	if is_telecine and is_interlaced then
+		if args.deinterlace_bff then
+			content = "Mixed TFF"
+		end
+		if args.ivtc_bff then
+			content = "Mixed BFF"
+		end
+	elseif not content then
 		print("Analysing first 5 minutes of video, please wait!")
 		local fields = io.popen('ffmpeg -i "' .. input .. '" -filter:v idet -t 300 -an -f null - 2>&1') --analyse the first 5 minutes to determine if content is telecine, interlaced, progressive, or a mix!
 		if not fields then
@@ -68,23 +92,6 @@ local function getfilters(input, args)
 				content = string.format([[%s %s]], content, "BFF")
 			end
 		end --picks the field types with a 90% certainty, is not perfect!
-	end
-	if telecine_bff then
-		content = "Telecined BFF"
-	end
-	if interlaced_bff then
-		content = "Interlaced BFF"
-	end
-	if is_telecine and is_interlaced then
-		if args.deinterlace_bff then
-			content = "Mixed TFF"
-		end
-		if args.ivtc_bff then
-			content = "Mixed BFF"
-		end
-	end
-	if is_progressive then
-		content = "Progressive"
 	end
 	if not content then
 		print("I don't know what went wrong")

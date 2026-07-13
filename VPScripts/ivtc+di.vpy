@@ -13,6 +13,10 @@ clip = vfm(clip, IVTC_value)
 clip = FixInterlacedFades.MATCH(clip)
 cpip = vinverse(clip)
 clip = vdecimate(clip)
+if DI_value == b'True':
+    clip = core.std.SetFieldBased(clip, 2)
+else:
+    clip = core.std.SetFieldBased(clip, 1)
 clip = QTGMC(clip, DI_value, QTGMC.InputType.REPAIR).lossless().basic(bobber=NNEDI3(opencl=True)).deinterlace()
 clip = clip[::2]
 #output
