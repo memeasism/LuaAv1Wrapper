@@ -77,15 +77,8 @@ local function getfilters(input, args)
 			else
 				content = string.format([[%s %s]], content, "BFF")
 			end
-		elseif ((tff_ratio + bff_ratio) > 0.8 and progressive_ratio < 0.1) or is_interlaced then
-			content = "Interlaced"
-			if tff > bff then
-				content = string.format([[%s %s]], content, "TFF")
-			else
-				content = string.format([[%s %s]], content, "BFF")
-			end
 		else
-			content = "Mixed"
+			content = "Interlaced"
 			if tff > bff then
 				content = string.format([[%s %s]], content, "TFF")
 			else

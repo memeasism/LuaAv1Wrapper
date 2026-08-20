@@ -7,7 +7,7 @@ if DI_value == b'True':
     clip = core.std.SetFieldBased(clip, 2)
 else:
     clip = core.std.SetFieldBased(clip, 1)
-clip = QTGMC(clip, DI_value, QTGMC.InputType.INTERLACE).deinterlace()
+clip = QTGMC().deinterlace(clip, DI_value)
 #output
 clip.set_output()
 
