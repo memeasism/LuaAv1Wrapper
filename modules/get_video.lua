@@ -99,7 +99,7 @@ local function getvideo(
 	local function cpu_command(out, target_vmaf, quality)
 		local command
 		command = string.format(
-			[[av1an -i %s --proxy %s -o "%s" --workers %s -e "aom" --pix-format yuv420p10le --scenes %s --target-metric vmaf --target-quality %s -v "--denoise-noise-level=%s--denoise-noise-level=%s --threads=2 --cpu-used=3 --row-mt=1 --good --passes=2 --tune=vmaf --tune-content=default""]],
+			[[av1an -i %s --proxy %s -o "%s" --workers %s -e "aom" --pix-format yuv420p10le --scenes %s --target-metric vmaf --target-quality %s -v "--denoise-noise-level=%s --threads=2 --cpu-used=3 --row-mt=1 --good --passes=2 --tune=vmaf --tune-content=default"]],
 			filters.av1an,
 			filters.proxy.av1an,
 			out,
