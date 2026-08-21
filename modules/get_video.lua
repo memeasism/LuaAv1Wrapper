@@ -82,7 +82,7 @@ local function getvideo(
 		)
 		return command
 	end
-	local ffv1_command = [[-c:v ffv1 -context 1 -g 1 -level 3 -slices 30 -coder 1 -pix_fmt yuv420p10le]]
+	local ffv1_command = [[-c:v ffv1 -context 1 -g 1 -level 3 -slices 30 -coder 1 ]]
 	local function remux(file)
 		local command
 		command = string.format(
@@ -99,7 +99,7 @@ local function getvideo(
 	local function cpu_command(out, target_vmaf, quality)
 		local command
 		command = string.format(
-			[[av1an -i %s --proxy %s -o "%s" --workers %s -e "aom" --pix-format yuv420p10le --scenes %s --target-metric vmaf --target-quality %s -v "--end-usage=q --denoise-noise-level=%s --threads=2 --cpu-used=4 --row-mt=1 --good --passes=2 --tune-content=default --min-partition-size=16 --max-partition-size=128 --aq-mode=1 --quant-b-adapt=1 --enable-qm=1"]],
+			[[av1an -i %s --proxy %s -o "%s" --workers %s -e "aom" --scenes %s --target-metric vmaf --target-quality %s -v "--end-usage=q --denoise-noise-level=%s --threads=2 --cpu-used=4 --row-mt=1 --good --passes=2 --tune-content=default --min-partition-size=16 --max-partition-size=128 --aq-mode=1 --quant-b-adapt=1 --enable-qm=1"]],
 			filters.av1an,
 			filters.proxy.av1an,
 			out,
@@ -110,7 +110,7 @@ local function getvideo(
 		)
 		if quality then
 			command = string.format(
-				[[av1an -i %s --proxy %s -o "%s" --workers %s -e "aom" --pix-format yuv420p10le --scenes %s --target-metric vmaf --target-quality %s -v "--cq-level=%s --denoise-noise-level=%s"]],
+				[[av1an -i %s --proxy %s -o "%s" --workers %s -e "aom" --scenes %s --target-metric vmaf --target-quality %s -v "--cq-level=%s --denoise-noise-level=%s"]],
 				filters.av1an,
 				filters.proxy.av1an,
 				out,
@@ -125,7 +125,7 @@ local function getvideo(
 	end
 	local function intel_cmd(quality)
 		local string = string.format(
-			[[-c:v av1_qsv -qscale:v %s -preset veryslow -extbrc 1 -look_ahead 1 -look_ahead_depth 60 -look_ahead_downsampling off -refs 16 -adaptive_i 1 -adaptive_b 1 -low_power 0 -pix_fmt p010le -vtag av01]],
+			[[-c:v av1_qsv -qscale:v %s -preset veryslow -extbrc 1 -look_ahead 1 -look_ahead_depth 60 -look_ahead_downsampling off -refs 16 -adaptive_i 1 -adaptive_b 1 -low_power 0 -vtag av01]],
 			quality
 		)
 		return string
