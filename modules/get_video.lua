@@ -159,9 +159,9 @@ local function getvideo(
 			print("Unable to decode the scenes txt file")
 			utils.quit()
 		end
-		if #scenes >= 4 then
-			divisor = 4
-			while count < 4 do
+		if #scenes >= 8 then
+			divisor = 8
+			while count < 8 do
 				local random = math.random(1, #scenes)
 				if not scene_frames[random] then
 					scene_frames[random] = scenes[random]
