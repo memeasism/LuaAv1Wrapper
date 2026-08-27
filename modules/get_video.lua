@@ -115,7 +115,7 @@ local function getvideo(
 	local function cpu_command(quality)
 		local command
 		command = string.format(
-			[[-c:v libsvtav1 -qp %s -preset 4 -g 240 -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
+			[[-c:v libsvtav1 -crf %s -preset 4 -g 240 -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
 			quality,
 			noise
 		)
@@ -123,7 +123,7 @@ local function getvideo(
 	end
 	local function intel_cmd(quality)
 		local string = string.format(
-			[[-c:v av1_qsv -qscale:v %s -preset veryslow -extbrc 1 -look_ahead 1 -look_ahead_depth 60 -look_ahead_downsampling off -refs 16 -adaptive_i 1 -adaptive_b 1 -low_power 0 -pix_fmt p010le -vtag av01]],
+			[[-c:v av1_qsv -q %s -preset veryslow -extbrc 1 -look_ahead 1 -look_ahead_depth 60 -look_ahead_downsampling off -refs 16 -adaptive_i 1 -adaptive_b 1 -low_power 0 -pix_fmt p010le -vtag av01]],
 			quality
 		)
 		return string
@@ -213,6 +213,11 @@ local function getvideo(
 						cq = cq - 2
 						pl.file.delete(temporary) --delete old temp file
 						local command = video_command(cq)
+						if string.find(command, "global_quality") then
+							command = string.gsub(command, "global_quality", "-qscale:v")
+						elseif string.find(command, "crf") then
+							command = string.gsub(command, "crf", "qp")
+						end
 						local temporary_command = string.format(
 							[[ffmpeg -i "%s" -map 0:v:0 -map 0:a? -map 0:s? -c:s copy -c:a copy -fflags +genpts -async 0 %s "%s"]],
 							reference,
