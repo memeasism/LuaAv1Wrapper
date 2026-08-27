@@ -134,7 +134,7 @@ local function getfilters(input, content, fps, args, pl)
 			ffmpeg = "vspipe " .. vsscripts[filter] .. " -c y4m " .. table.concat(
 				pl.tablex.map(formatffmpeg, attributes[filter]),
 				" "
-			) .. " - | ",
+			) .. " -s %s -e %s - | ",
 		},
 	}
 

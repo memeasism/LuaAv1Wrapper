@@ -15,9 +15,10 @@ local function getvideo(
 	pl
 )
 	--define static variables
+	local txt = "av1_scenes.txt"
 	local path = pl.path
+	local stringx = pl.stringx
 	local temporary = output .. "_temp.mkv"
-	local json = "av1_scenes.json"
 	local output_format = path.extension(output)
 	local reference = temporary .. "_ref.mkv"
 	local skip_vmaf = args.skipvmaf
@@ -36,6 +37,21 @@ local function getvideo(
 	--set values according to certain factors
 	if not workers then
 		workers = 0
+	end
+	local function txt_decode(txt_file)
+		local txt_table = {}
+		local previous_time
+		for line in io.lines(txt_file) do
+			local time = line:match("pts_time:(%d+%.?%d*)")
+			if time then
+				if not previous_time then
+					previous_time = 0
+				end
+				table.insert(txt_table, { tonumber(previous_time), tonumber(time) })
+				previous_time = time
+			end
+		end
+		return txt_table
 	end
 	local function vmaf_range(start, stop)
 		local result = {}
@@ -82,7 +98,7 @@ local function getvideo(
 		)
 		return command
 	end
-	local ffv1_command = [[-c:v ffv1 -context 1 -g 1 -level 3 -slices 30 -coder 1 ]]
+	local ffv1_command = [[-c:v ffv1 -context 1 -g 1 -level 3 -slices 30 -coder 1 -pix_fmt yuv420p10le]]
 	local function remux(file)
 		local command
 		command = string.format(
@@ -96,44 +112,30 @@ local function getvideo(
 		)
 		return command
 	end
-	local function cpu_command(out, target_vmaf, quality)
+	local function cpu_command(quality)
 		local command
 		command = string.format(
-			[[av1an -i %s --proxy %s -o "%s" --workers %s -e "aom" --scenes %s --target-metric vmaf --target-quality %s -v "--end-usage=q --denoise-noise-level=%s --threads=8 --cpu-used=4 --row-mt=1 --good --passes=2 --aq-mode=1 --quant-b-adapt=1 --enable-qm=1"]],
-			filters.av1an,
-			filters.proxy.av1an,
-			out,
-			workers,
-			json,
-			target_vmaf,
+			[[-c:v libsvtav1 -qp %s -preset 4 -g 240 -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
+			quality,
 			noise
 		)
-		if quality then
-			command = string.format(
-				[[av1an -i %s --proxy %s -o "%s" --workers %s -e "aom" --scenes %s --target-metric vmaf --target-quality %s -v "--cq-level=%s --denoise-noise-level=%s"]],
-				filters.av1an,
-				filters.proxy.av1an,
-				out,
-				workers,
-				json,
-				vmaf,
-				quality,
-				noise
-			)
-		end
 		return command
 	end
 	local function intel_cmd(quality)
 		local string = string.format(
-			[[-c:v av1_qsv -qscale:v %s -preset veryslow -extbrc 1 -look_ahead 1 -look_ahead_depth 60 -look_ahead_downsampling off -refs 16 -adaptive_i 1 -adaptive_b 1 -low_power 0 -vtag av01]],
+			[[-c:v av1_qsv -qscale:v %s -preset veryslow -extbrc 1 -look_ahead 1 -look_ahead_depth 60 -look_ahead_downsampling off -refs 16 -adaptive_i 1 -adaptive_b 1 -low_power 0 -pix_fmt p010le -vtag av01]],
 			quality
 		)
 		return string
 	end
 	local function find_vmaf()
-		pl.file.delete(json) --delete leftovers from a possibly failed encode
+		pl.file.delete(txt) --delete leftovers from a possibly failed encode
 		--set static variables
-		local av1an_split_command = string.format([[av1an -i %s --sc-only -s %s]], filters.proxy.av1an, json)
+		local vmaf_split_command = string.format(
+			[[%s ffmpeg -i pipe: -filter:v "select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
+			filters.proxy.ffmpeg,
+			txt
+		)
 		--set mutable variables
 		local current_vmaf = 0
 		local current_command
@@ -144,34 +146,34 @@ local function getvideo(
 		local oldcq = 50
 		local divisor
 		--start function
-		print("Using Av1an to detect scenes so we can test quality on multiple scenes!")
-		utils.execute(av1an_split_command)
-		local scenes = pl.file.read(json) --read the output of av1an scene detection
+		print("Using ffmpeg to detect scenes so we can test quality on multiple scenes!")
+		utils.execute(vmaf_split_command)
+		local scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
 		if not scenes then
 			--if the scenes file doesn't exist then error
-			print("Unable to read the scene json file")
+			print("Unable to read the scene txt file")
 			utils.quit()
 		end
-		scenes = cjson.decode(scenes)
+		scenes = txt_decode(txt)
 		if not scenes then
-			print("Unable to decode the scenes json file")
+			print("Unable to decode the scenes txt file")
 			utils.quit()
 		end
-		if #scenes.scenes >= 4 then
+		if #scenes >= 4 then
 			divisor = 4
 			while count < 4 do
-				local random = math.random(1, #scenes.scenes)
+				local random = math.random(1, #scenes)
 				if not scene_frames[random] then
-					scene_frames[random] = scenes.scenes[random]
+					scene_frames[random] = scenes[random]
 					count = count + 1
 				end
 			end
 		else --both of these if statements just add random scenes to a table, 4 by default but in rare instances if there are less than 4 it just does them all
-			divisor = #scenes.scenes
-			while count < #scenes.scenes do
-				local random = math.random(1, #scenes.scenes)
+			divisor = #scenes
+			while count < #scenes do
+				local random = math.random(1, #scenes)
 				if not scene_frames[random] then
-					scene_frames[random] = scenes.scenes[random]
+					scene_frames[random] = scenes[random]
 					count = count + 1
 				end
 			end
@@ -182,18 +184,16 @@ local function getvideo(
 			cq = oldcq --set cq back to 50 or a safe starting point for a new scene
 			local vmaf_values = {}
 			local scene_success
-			local start_time = value.start_frame / fps_number
-			local stop_time = (value.end_frame - value.start_frame + 1) / fps_number
+			local start_time = math.floor(value[1] * fps_number)
+			local stop_time = math.floor(value[2] * fps_number)
 			local vmaf_command = string.format(
 				[[ffmpeg -i "%s" -i "%s" -filter_complex "[0:v:0]scale=1920:1080[distorted];[1:v:0]scale=1920:1080[reference];[distorted][reference]libvmaf" -f null -]],
 				temporary,
 				reference
 			)
 			local reference_command = string.format(
-				[[%s -ss %f -t %f -c:a copy %s "%s"]],
-				base(filters.proxy.ffmpeg, input),
-				start_time,
-				stop_time,
+				[[%s -an %s "%s"]],
+				base(string.format(filters.proxy.ffmpeg, start_time, stop_time), input),
 				ffv1_command,
 				reference
 			)
@@ -264,7 +264,7 @@ local function getvideo(
 		--delete temp files
 		pl.file.delete(temporary)
 		pl.file.delete(reference)
-		pl.file.delete(json)
+		pl.file.delete(txt)
 		--make sure that there are enough cq values to parse
 		if #vmaf_to_cq < divisor then
 			--if there's not enough cq values, it does a fallback
@@ -290,63 +290,23 @@ local function getvideo(
 	--these set the commands for encoding
 	if video_codec == "av1" then
 		if gpu == 0 then
-			pl.file.delete(json)
-			remux_command = remux(temporary)
-			video_quality = get_quality(input, ffprobe, gpu, args, pl)
-			no_vmaf_command = cpu_command(temporary, nil, video_quality)
-			if not pl.file.read(temporary) then
-				for key, value in pairs(vmaf) do
-					video_command = cpu_command(temporary, value)
-					if args.video_quality or skip_vmaf then
-						print(no_vmaf_command)
-						utils.execute(no_vmaf_command)
-					else
-						print(video_command)
-						utils.execute(video_command)
-					end
-					if not pl.file.read(temporary) then
-						print("Intermediary file not found! Running fallback command")
-					else
-						break
-					end
-				end
-				if not pl.file.read(temporary) then
-					print("All fallback commands failed, resorting to no vmaf")
-					video_quality = get_quality(input, ffprobe, gpu, args, pl)
-					utils.execute(no_vmaf_command)
-				end
-			else
-				print("temporary file already exists, attempting to remux")
-			end
-			print("Encoding audio and copying subtitles to the output file")
-			print(remux_command)
-			utils.execute(remux_command)
-			if not pl.file.read(output) then
-				print("Video failed to be remuxed")
-				utils.quit()
-			end
-			print("Remux success! Removing the intermediary video file")
-			pl.file.delete(temporary)
-			pl.file.delete(json)
-			video_command = "skip"
-			skip_vmaf = true
-		else
-			if gpu == 1 then
-				video_command = intel_cmd
-			end
-			--[[if gpu == 2 then
+			video_command = cpu_command
+		end
+		if gpu == 1 then
+			video_command = intel_cmd
+		end
+		--[[if gpu == 2 then
 			video_command = amdcmd
 		end
 		if gpu == 3 then
 			video_command = nvidiacmd
 		end]]
-			if not (video_quality or skip_vmaf) then
-				video_quality = find_vmaf()
-			else
-				video_quality = get_quality(input, ffprobe, gpu, args, pl)
-			end
-			video_command = video_command(video_quality)
+		if not (video_quality or skip_vmaf) then
+			video_quality = find_vmaf()
+		else
+			video_quality = get_quality(input, ffprobe, gpu, args, pl)
 		end
+		video_command = video_command(video_quality)
 	end
 	if video_codec == "ffv1" then
 		video_command = ffv1_command
