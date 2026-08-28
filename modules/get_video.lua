@@ -22,13 +22,22 @@ local function getvideo(
 	local output_format = path.extension(output)
 	local reference = temporary .. "_ref.mkv"
 	local skip_vmaf = args.skipvmaf
-	local total_frames = ffprobe.video.streams[1].nb_frames - 1
-	print(total_frames)
 	local utils = pl.utils
 	local video_codec = args.video
 	--define variables that are mutable
 	local vmaf
 	local fps_number = tonumber(fps_table.fpsdividendtxt) / tonumber(fps_table.fpsdivisortxt)
+	local total_frames
+	local nb_frames = ffprobe.video.streams[1].nb_frames
+	local fallback_frames = ffprobe.video.format.duration
+	if nb_frames then
+		total_frames = tonumber(nb_frames) - 1
+	elseif fallback_frames then
+		total_frames = math.floor(((tonumber(fallback_frames) * fps_number) - 1) + 0.5)
+	else
+		print("Error getting file duration, skipping!")
+		return "skip"
+	end
 	local video_quality = args.videoquality
 	local skip_subtitles
 	local video_command
@@ -119,7 +128,7 @@ local function getvideo(
 		command = string.format(
 			[[-c:v libsvtav1 -crf %s -preset 4 -g %s -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:enable-qm=1:scd=1:lookahead=120:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
 			quality,
-			math.floor(fps_number*10),
+			math.floor(fps_number * 10),
 			noise
 		)
 		return command
