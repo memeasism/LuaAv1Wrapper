@@ -33,7 +33,7 @@ local function getvideo(
 	if nb_frames then
 		total_frames = tonumber(nb_frames) - 1
 	elseif fallback_frames then
-		total_frames = math.floor(((tonumber(fallback_frames) * fps_number) - 1) + 0.5)
+		total_frames = math.floor((tonumber(fallback_frames) * fps_number)) - 1
 	else
 		print("Error getting file duration, skipping!")
 		return "skip"
