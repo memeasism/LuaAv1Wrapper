@@ -60,6 +60,12 @@ local function getvideo(
 				end
 				table.insert(txt_table, { tonumber(previous_time), tonumber(time) })
 				previous_time = time
+			else
+				if not previous_time then
+					time = total_frames + 1
+					previous_time = 0
+					table.insert(txt_table, { tonumber(previous_time), tonumber(time) })
+				end
 			end
 		end
 		return txt_table
