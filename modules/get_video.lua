@@ -22,6 +22,8 @@ local function getvideo(
 	local output_format = path.extension(output)
 	local reference = temporary .. "_ref.mkv"
 	local skip_vmaf = args.skipvmaf
+	local total_frames = ffprobe.video.streams[1].nb_frames - 1
+	print(total_frames)
 	local utils = pl.utils
 	local video_codec = args.video
 	--define variables that are mutable
@@ -133,7 +135,7 @@ local function getvideo(
 		--set static variables
 		local vmaf_split_command = string.format(
 			[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
-			filters.proxy.ffmpeg,
+			string.format(filters.proxy.ffmpeg, 0, total_frames),
 			fps_number,
 			txt
 		)
@@ -186,7 +188,7 @@ local function getvideo(
 			local vmaf_values = {}
 			local scene_success
 			local start_time = value[1]
-			local stop_time = value[2]
+			local stop_time = value[2] - 1
 			local vmaf_command = string.format(
 				[[ffmpeg -i "%s" -i "%s" -filter_complex "[0:v:0]scale=1920:1080[distorted];[1:v:0]scale=1920:1080[reference];[distorted][reference]libvmaf" -f null -]],
 				temporary,
