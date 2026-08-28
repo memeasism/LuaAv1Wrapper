@@ -132,8 +132,9 @@ local function getvideo(
 		pl.file.delete(txt) --delete leftovers from a possibly failed encode
 		--set static variables
 		local vmaf_split_command = string.format(
-			[[%s ffmpeg -i pipe: -filter:v "select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
+			[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
 			filters.proxy.ffmpeg,
+			fps_number,
 			txt
 		)
 		--set mutable variables
