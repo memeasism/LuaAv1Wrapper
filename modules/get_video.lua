@@ -42,7 +42,7 @@ local function getvideo(
 		local txt_table = {}
 		local previous_time
 		for line in io.lines(txt_file) do
-			local time = line:match("pts_time:(%d+%.?%d*)")
+			local time = line:match("pts:(%d+)")
 			if time then
 				if not previous_time then
 					previous_time = 0
@@ -184,8 +184,8 @@ local function getvideo(
 			cq = oldcq --set cq back to 50 or a safe starting point for a new scene
 			local vmaf_values = {}
 			local scene_success
-			local start_time = math.floor(value[1] * fps_number)
-			local stop_time = math.floor(value[2] * fps_number)
+			local start_time = value[1]
+			local stop_time = value[2]
 			local vmaf_command = string.format(
 				[[ffmpeg -i "%s" -i "%s" -filter_complex "[0:v:0]scale=1920:1080[distorted];[1:v:0]scale=1920:1080[reference];[distorted][reference]libvmaf" -f null -]],
 				temporary,
