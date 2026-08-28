@@ -117,8 +117,9 @@ local function getvideo(
 	local function cpu_command(quality)
 		local command
 		command = string.format(
-			[[-c:v libsvtav1 -crf %s -preset 4 -g 240 -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
+			[[-c:v libsvtav1 -crf %s -preset 4 -g %s -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
 			quality,
+			math.floor(fps_number*10),
 			noise
 		)
 		return command
