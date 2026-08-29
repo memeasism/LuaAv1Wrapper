@@ -131,7 +131,7 @@ local function getvideo(
 	local function cpu_command(quality)
 		local command
 		command = string.format(
-			[[-c:v libsvtav1 -qp %s -preset 4 -g %s -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:enable-qm=1:scd=1:lookahead=120:film-grain=%s:film-grain-denoise=1:enable-overlays=1:passes=2"]],
+			[[-c:v libsvtav1 -crf %s -preset 4 -g %s -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:enable-qm=1:scd=1:lookahead=120:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
 			quality,
 			math.floor(fps_number * 10),
 			noise
@@ -140,7 +140,7 @@ local function getvideo(
 	end
 	local function intel_cmd(quality)
 		local string = string.format(
-			[[-c:v av1_qsv -qscale:v %s -preset veryslow -extbrc 1 -look_ahead 1 -look_ahead_depth 60 -look_ahead_downsampling off -refs 16 -adaptive_i 1 -adaptive_b 1 -low_power 0 -pix_fmt p010le -vtag av01]],
+			[[-c:v av1_qsv -global_quality %s -preset veryslow -extbrc 1 -look_ahead 1 -look_ahead_depth 60 -look_ahead_downsampling off -refs 16 -adaptive_i 1 -adaptive_b 1 -low_power 0 -pix_fmt p010le -vtag av01]],
 			quality
 		)
 		return string
