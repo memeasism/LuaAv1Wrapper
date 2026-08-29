@@ -113,6 +113,7 @@ for key, file in pairs(input) do --repeats these functions for all input files
 		--if ffprobe fails tell the user
 		print(string.format("Not a valid input file: %s, skipping.", file))
 	elseif ffprobe.video.streams[1] then --if there is a video stream then run the next commands
+		print(string.format("Encoding: %s", file))
 		local audio_command, output = get_audio(file, output[key], no_flac_extensions, ffprobe, args, pl)
 		--gets the audio command and also redefines our output file because webm, the default container doesn't support webm so, it corrects itself
 		if not path.isfile(output) then --check if output file exists again

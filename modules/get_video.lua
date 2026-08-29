@@ -33,7 +33,7 @@ local function getvideo(
 	if nb_frames then
 		total_frames = tonumber(nb_frames) - 1
 	elseif fallback_frames then
-		total_frames = math.floor((tonumber(fallback_frames) * fps_number)) - 1
+		total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 2
 	else
 		print("Error getting file duration, skipping!")
 		return "skip"
@@ -196,10 +196,11 @@ local function getvideo(
 				end
 			end
 		end
-
+		local scene_number = 0
 		for key, value in pairs(scene_frames) do
 			pl.file.delete(reference) --delete previous reference/reference reference from failed encode
 			cq = oldcq --set cq back to 50 or a safe starting point for a new scene
+			scene_number = scene_number + 1
 			local vmaf_values = {}
 			local scene_success
 			local start_time = value[1]
@@ -219,7 +220,11 @@ local function getvideo(
 			local reference_success
 			while not reference_success and count < 5 do
 				print(
-					"Encoding reference! This part can be fast or take a while, no matter what, it speeds up the process overall."
+					string.format(
+						"Encoding reference %s/%s! This part can be fast or take a while, no matter what, it speeds up the process overall.",
+						scene_number,
+						divisor
+					)
 				)
 				pl.file.delete(reference)
 				reference_success = utils.executeex(reference_command)
