@@ -7,6 +7,6 @@ if DI_value == b'True':
     clip = core.std.SetFieldBased(clip, 2)
 else:
     clip = core.std.SetFieldBased(clip, 1)
-clip = BWDIF(tff=DI_value, double_rate=True, edient=None).bob(clip)
+clip = BWDIF(tff=DI_value, double_rate=True).bob(clip)
 #output
 clip.set_output()
