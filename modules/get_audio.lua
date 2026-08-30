@@ -73,7 +73,7 @@ local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
 			if oldcodec == "opus" then
 				audiopass = true
 			else
-				audiobitrate = audioprobe.bit_rate / 2
+				audiobitrate = tonumber(audioprobe.bit_rate) / 2
 			end
 		end --decides bitrate and whether or not to just pass audio through.
 	end
