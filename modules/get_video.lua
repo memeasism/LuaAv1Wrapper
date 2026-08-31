@@ -4,6 +4,7 @@ local function getvideo(
 	audio_command,
 	cjson,
 	content,
+	count_frames,
 	ffprobe,
 	input,
 	filters,
@@ -32,9 +33,17 @@ local function getvideo(
 	local fallback_frames = ffprobe.video.format.duration
 	if nb_frames then
 		total_frames = tonumber(nb_frames) - 1
-	elseif fallback_frames then
-		total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 2
 	else
+		print("Could not get frame count from ffprobe, counting frames!")
+		total_frames = count_frames(input, pl)
+		if total_frames ~= "error" then
+			total_frames = total_frames - 1
+		else
+			print("Counting frames failed, time to guess!")
+			total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
+		end
+	end
+	if (not total_frames) or (total_frames == "error") then
 		print("Error getting file duration, skipping!")
 		return "skip"
 	end

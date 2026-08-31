@@ -2,6 +2,7 @@
 local pl = require("pl.import_into")()
 local args = require("modules/args")(pl) --gets arguments
 local cjson = require("cjson")
+local count_frames = require("modules/count_frames")
 local extentions = require("modules/extentions")
 local get_audio = require("modules/get_audio")
 local get_ffprobe = require("modules/ffprobe")
@@ -128,6 +129,7 @@ for key, file in pairs(input) do --repeats these functions for all input files
 				audio_command,
 				cjson,
 				content,
+				count_frames,
 				ffprobe,
 				file,
 				filters,
