@@ -2,6 +2,7 @@
 local pl = require("pl.import_into")()
 local args = require("modules/args")(pl) --gets arguments
 local cjson = require("cjson")
+local lanes = require("lanes").configure()
 local count_frames = require("modules/count_frames")
 local extentions = require("modules/extentions")
 local get_audio = require("modules/get_audio")
@@ -13,6 +14,7 @@ local get_gpu = require("modules/get_gpu")
 local get_quality = require("modules/get_quality")
 local get_size = require("modules/get_size")
 local get_video = require("modules/get_video")
+local get_vmaf = require("modules/get_vmaf")
 local no_flac_extensions = extentions.no_flac_extensions
 local no_subtitle_extensions = extentions.no_subtitle_extensions
 --set input and output info
@@ -123,10 +125,11 @@ for key, file in pairs(input) do --repeats these functions for all input files
 			local fps_table = get_fps(ffprobe) --returns source videos fps
 			local filters = get_filters(file, content, fps_table, args, pl) --gets filters based off content type
 			local aspect = get_size(file, ffprobe) --gets the aspect ratio for the video
-			local video_command = get_video(
+			local video_command = get_video(lanes,
 				args,
 				aspect,
 				audio_command,
+				get_vmaf,
 				cjson,
 				content,
 				count_frames,

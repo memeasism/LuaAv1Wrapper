@@ -3,5 +3,6 @@ https://www.lua.org/
 https://lunarmodules.github.io/luafilesystem/index.html
 https://kyne.au/~mark/software/lua-cjson.php
 https://github.com/lunarmodules/Penlight
+https://lualanes.github.io/lanes/
 https://www.vapoursynth.com/
 https://github.com/Jaded-Encoding-Thaumaturgy/vs-jetpack (make sure to install the full thing via pip, this includes all the other dependencies of this project!)
