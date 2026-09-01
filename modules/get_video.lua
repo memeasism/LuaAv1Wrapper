@@ -4,6 +4,7 @@ local function getvideo(
 	aspect,
 	audio_command,
 	get_vmaf,
+	parallel_encoding,
 	cjson,
 	content,
 	count_frames,
@@ -18,9 +19,10 @@ local function getvideo(
 	pl
 )
 	--define static variables
+	local test_scene_count = 8
 	local txt = "av1_scenes.txt"
+	local cat_txt = "cat.txt"
 	local path = pl.path
-	local stringx = pl.stringx
 	local output_format = path.extension(output)
 	local skip_vmaf = args.skipvmaf
 	local utils = pl.utils
@@ -36,7 +38,7 @@ local function getvideo(
 	else
 		print("Could not get frame count from ffprobe, counting frames!")
 		total_frames = count_frames(input, pl)
-		if total_frames ~= "error" then
+		if total_frames then
 			total_frames = total_frames - 1
 		else
 			print("Counting frames failed, time to guess!")
@@ -51,30 +53,41 @@ local function getvideo(
 	local skip_subtitles
 	local video_command
 	local remux_command
-	local no_vmaf_command
-	local workers = args.workers
+	local merge_command
+	local workers = args.workers or 1
+	local vmaf_workers = args.vworkers or 2
 	local noise = args.noise
 	--set values according to certain factors
-	if not workers then
-		workers = 0
+	local function split_table(tbl, amount)
+		local result = {}
+		for i = 1, amount do
+			result[i] = {}
+		end
+		local index = 1
+		for _, v in ipairs(tbl) do
+			table.insert(result[index], v)
+			index = (index % amount) + 1
+		end
+		return result
 	end
 	local function txt_decode(txt_file)
 		local txt_table = {}
-		local previous_time
+		local previous_time = 0
 		for line in io.lines(txt_file) do
+			print(line)
 			local time = line:match("pts:(%d+)")
-			if time then
-				if not previous_time then
-					previous_time = 0
-				end
-				table.insert(txt_table, { tonumber(previous_time), tonumber(time) })
+			local scene = line:match("frame:(%d+)")
+			if time and scene then
+				table.insert(txt_table, { tonumber(previous_time), tonumber(time), tonumber(scene) + 1 })
 				previous_time = time
 			end
 		end
-		if not previous_time then
-			local time = total_frames + 1
-			previous_time = 0
-			table.insert(txt_table, { tonumber(previous_time), tonumber(time) })
+
+		local time = total_frames + 1
+		if previous_time == 0 then
+			table.insert(txt_table, { tonumber(previous_time), tonumber(time), 1 })
+		else
+			table.insert(txt_table, { tonumber(previous_time), tonumber(time), txt_table[#txt_table][3] + 1 })
 		end
 		return txt_table
 	end
@@ -117,9 +130,9 @@ local function getvideo(
 	local function remux(file)
 		local command
 		command = string.format(
-			[[ffmpeg -i "%s" -i "%s" -map 0:v:0 -map 1:a? -map 1:s? -c:v copy -aspect %s -c:s copy -fflags +genpts -async 0  %s %s "%s"]],
+			[[ffmpeg -f concat -safe 0 -i "%s" -i "%s" -map 0:v:0 -map 1:a? -map 1:s? -c:v copy -aspect %s -c:s copy -fflags +genpts -async 0  %s %s "%s"]],
+			cat_txt,
 			file,
-			input,
 			string.gsub(aspect, "/", ":"),
 			audio_command,
 			skip_subtitles,
@@ -183,24 +196,128 @@ local function getvideo(
 			video_command = nvidiacmd
 		end]]
 		if not (video_quality or skip_vmaf) then
+			local parallel = lanes.gen("*", parallel_encoding)
+			local threads = {}
+			local results = {}
 			if workers > 1 then
+				local current_worker = 0
+				local scenes = get_scenes()
+				scenes = split_table(scenes, workers)
+				for i, v in ipairs(scenes) do
+					current_worker = current_worker + 1
+					table.insert(
+						threads,
+						parallel(
+							input,
+							ffprobe,
+							gpu,
+							args,
+							output,
+							video_command,
+							get_quality,
+							base,
+							ffv1_command,
+							filters,
+							v,
+							true,
+							false,
+							get_vmaf
+						)
+					)
+				end
+				for i, v in ipairs(threads) do
+					local result = v
+					for _, r in ipairs(result) do
+						for _, out in ipairs(r) do
+							table.insert(results, out)
+						end
+					end
+				end
+				local function alphanumsort(o)
+					local function padnum(d)
+						return ("%03d%s"):format(#d, d)
+					end
+					table.sort(o, function(a, b)
+						return tostring(a):gsub([[_(%d+).mkv."$]], padnum) < tostring(b):gsub([[_(%d+).mkv."$]], padnum)
+					end)
+					return o
+				end
+				if #results > 1 then
+					results = alphanumsort(results)
+				end
+				pl.pretty(results)
+				for i, v in ipairs(results) do
+					pl.file.delete(cat_txt)
+					utils.execute(string.format([[echo file %s >> %s]], v:gsub("\\", "/"), cat_txt))
+				end
+				local command = remux(input)
+				print(command)
+				utils.execute(command)
+				pl.file.delete(cat_txt)
+				utils.quit()
 			else
 				local scenes = get_scenes()
-				video_quality = get_vmaf(
-					input,
-					ffprobe,
-					gpu,
-					args,
-					output,
-					video_command,
-					get_quality,
-					pl,
-					base,
-					ffv1_command,
-					filters,
-					scenes,
-					false
-				)
+				local divisor
+				local scene_frames = {}
+				local count = 0
+				if #scenes >= test_scene_count then
+					divisor = test_scene_count
+					while count < test_scene_count do
+						local random = math.random(1, #scenes)
+						if not scene_frames[random] then
+							scene_frames[random] = scenes[random]
+							count = count + 1
+						end
+					end
+				else --both of these if statements just add random scenes to a table, 4 by default but in rare instances if there are less than 4 it just does them all
+					divisor = #scenes
+					while count < #scenes do
+						local random = math.random(1, #scenes)
+						if not scene_frames[random] then
+							scene_frames[random] = scenes[random]
+							count = count + 1
+						end
+					end
+				end
+				scenes = split_table(scenes, vmaf_workers)
+				for i, v in ipairs(scenes) do
+					table.insert(
+						threads,
+						parallel(
+							input,
+							ffprobe,
+							gpu,
+							args,
+							output,
+							video_command,
+							get_quality,
+							base,
+							ffv1_command,
+							filters,
+							v,
+							false,
+							false,
+							get_vmaf
+						)
+					)
+				end
+				for i, v in ipairs(threads) do
+					local result = v
+					for _, r in ipairs(result) do
+						for _, quality in ipairs(r) do
+							table.insert(results, quality)
+						end
+					end
+				end
+				local previous
+				for i, v in pairs(results) do
+					if previous then
+						previous = previous + v
+					else --simple code to add the values
+						previous = v
+					end
+				end
+				video_quality = previous / #threads
 			end
 		else
 			video_quality = get_quality(input, ffprobe, gpu, args, pl)
@@ -217,7 +334,7 @@ local function getvideo(
 	if video_command ~= "skip" then
 		video_command = string.format(
 			"%s %s %s %s",
-			base(filters.ffmpeg, input),
+			base(string.format(filters.ffmpeg, 0, total_frames), input),
 			video_command,
 			audio_command,
 			utils.quote_arg(output)

@@ -35,7 +35,10 @@ local function getargs(pl)
 	--deinterlace_bff		Your video will be deinterlaced bottom field first
 	--ivtc_bff		Your video will be inverse telecined bottom field first
 	-c,--cpu		Your video will be encoded on cpu
-	-w,--workers (optional number) Number of workers for av1an
+	-w,--workers (optional 1..9999) Number of workers for parallel encoding 
+	--vworkers (optional 1..9999) Number of workers for vmaf detection(more does not always mean faster, 2 seems optimal.)
+	--vmaf (optional 1..100) Target vmaf score, higher = better quality
+	--fallbackvmaf (optional 1..100) The lowest vmaf you will accept
 	-s,--skipvmaf		Your video will be encoded using the stored quality values instead of dynamically finding the best quality for your content type
 	--mkv		Your outputs will be mkv files, FOR BATCH PROCESSING!
 	-m,--mass		Lets the script know that your input is a folder

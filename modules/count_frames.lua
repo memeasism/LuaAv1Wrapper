@@ -8,7 +8,7 @@ local function count_frames(input, pl)
 		local frame_count = tonumber(count_frames)
 		return frame_count
 	else
-		return "error"
+		return nil
 	end
 end
 return count_frames

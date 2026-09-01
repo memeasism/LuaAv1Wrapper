@@ -123,7 +123,7 @@ local function getfilters(input, content, fps, args, pl)
 		ffmpeg = "vspipe " .. pl.path.normpath(vsscripts[filter]) .. " -c y4m " .. table.concat(
 			pl.tablex.map(formatffmpeg, attributes[filter]),
 			" "
-		) .. " - | ",
+		) .. " -s %s -e %s - | ",
 		av1an = pl.utils.quote_arg(pl.path.normpath(vsscripts[filter]))
 			.. " --vspipe-args "
 			.. table.concat(pl.tablex.map(formatav1an, attributes[filter]), " "),
