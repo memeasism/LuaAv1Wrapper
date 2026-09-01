@@ -11,7 +11,6 @@ local function get_vmaf(
 	ffv1_command,
 	filters,
 	scenes,
-	parallel,
 	start_frame,
 	end_frame,
 	scene,
@@ -26,8 +25,8 @@ local function get_vmaf(
 		return result
 	end
 	vmaf = vmaf_range(
-		98 --[[(Start)From my understanding the optimal "visually lossless" VMAF score]],
-		80 --[[(Stop) just picked a low vmaf number]]
+		args.vmaf or 97, --[[(Start)From my understanding the optimal "visually lossless" VMAF score]]
+		args.fallbackvmaf or 80 --[[(Stop) just picked a low vmaf number]]
 	)
 	--set static variables
 	local utils = pl.utils
@@ -36,54 +35,19 @@ local function get_vmaf(
 	local current_vmaf = 0
 	local current_command
 	local scene_frames = {}
-	local scene_number = 0
 	local vmaf_to_cq = {}
 	local count = 0
-	local cq = 50
-	local old_cq = 50
+	local cq = 42
+	local old_cq = previous_cq or 42
 	local divisor
-	if parallel then
-		if previous_cq then
-			old_cq = previous_cq
-		end
-		if scene then
-			count = scene - 1
-		end
-	else
-		scene = 1
-	end
 	local temporary = string.format("%s_%s_temp.mkv", output, scene)
 	local reference = string.format("%s_%s_ref.mkv", temporary, scene)
 	--start function
-	if not parallel then
-		if #scenes >= 8 then
-			divisor = 8
-			while count < 8 do
-				local random = math.random(1, #scenes)
-				if not scene_frames[random] then
-					scene_frames[random] = scenes[random]
-					count = count + 1
-				end
-			end
-		else --both of these if statements just add random scenes to a table, 4 by default but in rare instances if there are less than 4 it just does them all
-			divisor = #scenes
-			while count < #scenes do
-				local random = math.random(1, #scenes)
-				if not scene_frames[random] then
-					scene_frames[random] = scenes[random]
-					count = count + 1
-				end
-			end
-		end
-	else
-		scene_frames = { { start_frame, end_frame } }
-		divisor = 1
-	end
+	scene_frames = { { start_frame, end_frame } }
+	divisor = 1
 	for key, value in pairs(scene_frames) do
 		pl.file.delete(reference) --delete previous reference/reference reference from failed encode
-		cq = old_cq --set cq back to 50 or a safe starting point for a new scene
-		scene_number = scene_number + 1
-		scene = scene_number
+		cq = old_cq + 8 --set cq back to 50 or a safe starting point for a new scene
 		local vmaf_values = {}
 		local scene_success
 		local start_time = value[1]
@@ -102,13 +66,6 @@ local function get_vmaf(
 		count = 0
 		local reference_success
 		while not reference_success and count < 5 do
-			print(
-				string.format(
-					"Encoding reference %s/%s! This part can be fast or take a while, no matter what, it speeds up the process overall.",
-					scene_number,
-					divisor
-				)
-			)
 			pl.file.delete(reference)
 			reference_success = utils.executeex(reference_command)
 			count = count + 1
@@ -151,9 +108,9 @@ local function get_vmaf(
 			if current_vmaf >= target_vmaf then
 				scene_success = true
 				vmaf_to_cq[#vmaf_to_cq + 1] = cq
-				cq = cq + 10 --add 8 but also 2 more due to how the loop works, this way we waste less time narrowing the vmaf in theory
-				if cq > 50 then
-					cq = 50
+				cq = cq + 8 --add 6 but also 2 more due to how the loop works, this way we waste less time narrowing the vmaf in theory
+				if cq > 42 then
+					cq = 42
 				end
 				old_cq = cq
 				current_vmaf = 0
@@ -179,17 +136,9 @@ local function get_vmaf(
 		else
 			video_quality = get_quality(input, ffprobe, gpu, args, pl)
 		end
-		return video_quality
+	else
+		video_quality = cq
 	end
-	local previous
-	for key, value in pairs(vmaf_to_cq) do
-		if previous then
-			previous = previous + value
-		else --simple code to add the values
-			previous = value
-		end
-	end
-	video_quality = previous / divisor --divide the added values by the divisor to get the mean(average) quality
 	return video_quality
 end
 return get_vmaf
