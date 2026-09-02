@@ -191,10 +191,18 @@ local function getvideo(
 		if #results > 1 then
 			results = alphanumsort(results)
 		end
-		pl.pretty(results)
+		pl.file.delete(cat_txt)
 		for i, v in ipairs(results) do
-			pl.file.delete(cat_txt)
-			local success = pl.file.write(cat_txt, string.format([[file '%s']], v))
+			local file = utils.readfile(cat_txt) or ""
+			local success = pl.utils.writefile(
+				cat_txt,
+				string.format(
+					[[%s
+file '%s']],
+					file,
+					v
+				)
+			)
 			local count = 0
 			while (not success) or count < 100000 do
 				count = count + 1
@@ -202,8 +210,8 @@ local function getvideo(
 		end
 		local command = remux(input)
 		print(command)
-		utils.execute(command)
 		pl.file.delete(cat_txt)
+		utils.execute(command)
 		for i, v in ipairs(results) do
 			pl.file.delete(v)
 		end
