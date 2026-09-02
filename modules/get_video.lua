@@ -35,7 +35,8 @@ local function getvideo(
 	local keyframe_interval = math.floor(fps_number * 10)
 	local workers = args.workers or 1
 	local video_quality = args.videoquality
-	if not next and not video_quality and not skip_vmaf then
+	local parallel = workers > 1
+	if parallel and not video_quality and not skip_vmaf then
 		if nb_frames then
 			total_frames = tonumber(nb_frames) - 1
 		else
@@ -86,7 +87,7 @@ local function getvideo(
 			end
 		end
 
-		local time = total_frames + 1
+		local time = (total_frames or previous_time) + 1
 		if previous_time == 0 then
 			table.insert(txt_table, { tonumber(previous_time), tonumber(time), 1 })
 		else
@@ -104,11 +105,14 @@ local function getvideo(
 	if not skip_subtitles then
 		skip_subtitles = ""
 	end
+	local frame_multiplier = 1
 	if string.find(content, "Telecined") or string.find(content, "Mixed") then
-		fps_number = fps_number * 0.8
+		frame_multiplier = 0.8
+		fps_number = fps_number * frame_multiplier
 	end
 	if string.find(content, "Interlaced") then
-		fps_number = fps_number * 2
+		frame_multiplier = 2
+		fps_number = fps_number * frame_multiplier
 	end
 	if not video_codec then
 		video_codec = "av1"
@@ -160,14 +164,25 @@ local function getvideo(
 		return string
 	end
 	local function get_scenes()
+		local vmaf_split_command
 		pl.file.delete(txt) --delete leftovers from a possibly failed encode
-		local vmaf_split_command = string.format(
-			[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
-			string.format(filters.proxy.ffmpeg, 0, total_frames),
-			fps_number,
-			txt
-		)
+		if parallel then
+			vmaf_split_command = string.format(
+				[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
+				string.format(filters.proxy.ffmpeg, 0, total_frames),
+				fps_number,
+				txt
+			)
+		else
+			vmaf_split_command = string.format(
+				[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
+				string.format(string.gsub(string.gsub(filters.proxy.ffmpeg, "-s", ""), "-e", ""), "", ""),
+				fps_number,
+				txt
+			)
+		end
 		print("Using ffmpeg to detect scenes so we can test quality on multiple scenes!")
+		print(vmaf_split_command)
 		utils.execute(vmaf_split_command)
 		local scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
 		if not scenes then
@@ -214,13 +229,15 @@ file '%s']],
 		end
 		local command = remux(input)
 		print(command)
-		pl.file.delete(cat_txt)
 		utils.execute(command)
+		pl.file.delete(cat_txt)
 		for i, v in ipairs(results) do
 			pl.file.delete(v)
 		end
 		return "parallel"
 	end
+
+	local parallel_command = lanes.gen("*", parallel_encoding)
 	--these set the commands for encoding
 	if video_codec == "av1" then
 		if gpu == 0 then
@@ -236,10 +253,9 @@ file '%s']],
 			video_command = nvidiacmd
 		end]]
 		if (not video_quality) and not skip_vmaf then
-			local parallel = lanes.gen("*", parallel_encoding)
 			local threads = {}
 			local results = {}
-			if workers > 1 then
+			if parallel then
 				local current_worker = 0
 				local scenes = get_scenes()
 				scenes = split_table(scenes, workers)
@@ -247,7 +263,7 @@ file '%s']],
 					current_worker = current_worker + 1
 					table.insert(
 						threads,
-						parallel(
+						parallel_command(
 							input,
 							ffprobe,
 							gpu,
@@ -299,11 +315,11 @@ file '%s']],
 						end
 					end
 				end
-				scenes = split_table(scenes, vmaf_workers)
-				for i, v in ipairs(scenes) do
+				scene_frames = split_table(scene_frames, vmaf_workers)
+				for i, v in ipairs(scene_frames) do
 					table.insert(
 						threads,
-						parallel(
+						parallel_command(
 							input,
 							ffprobe,
 							gpu,
@@ -341,17 +357,17 @@ file '%s']],
 			end
 		else
 			video_quality = get_quality(input, ffprobe, gpu, args, pl)
-			local parallel = lanes.gen("*", parallel_encoding)
 			local threads = {}
 			local results = {}
-			if workers > 1 then
+			if parallel then
 				local current_worker = 0
-				for v = 1, workers do
-					print("E")
+				local scenes = get_scenes()
+				scenes = split_table(scenes, workers)
+				for i, v in ipairs(scenes) do
 					current_worker = current_worker + 1
 					table.insert(
 						threads,
-						parallel(
+						parallel_command(
 							input,
 							ffprobe,
 							gpu,
