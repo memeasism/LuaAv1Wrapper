@@ -1,22 +1,12 @@
 local function getargs(pl)
-	local function format(file)
-		if not file then
-			return nil
-		end
-		file = string.gsub(file, '"', "")
-		file = string.gsub(file, "\\$", "")
-		file = string.gsub(file, "\\", "/")
-		return file
-	end
 	pl.lapp.add_type("file-dir-in", "stdin", function(file)
-		local formatted = format(file)
-		local is_file = pl.path.isfile(formatted)
-		local is_dir = pl.path.isdir(formatted)
+		local is_file = pl.path.isfile(file)
+		local is_dir = pl.path.isdir(file)
 		if is_file then
-			return formatted
+			return file
 		end
 		if is_dir then
-			return formatted
+			return file
 		end
 	end)
 

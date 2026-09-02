@@ -19,7 +19,7 @@ local function parallel_encoding(
 	local pl = require("pl.import_into")()
 	local utils = pl.utils
 	for i, v in ipairs(scenes) do
-		if not quality then
+		if quality == false then
 			previous_cq = get_vmaf(
 				input,
 				ffprobe,
@@ -44,9 +44,9 @@ local function parallel_encoding(
 		if not parallel then
 			table.insert(output_table, previous_cq)
 		else
-			local final_output = utils.quote_arg(string.format("%s_%s.%s", output, v[3], "mkv"))
+			local final_output = (string.format("%s_%s.%s", output, v[3], "mkv"))
 			local final_command = string.format(
-				"%s %s -an %s",
+				[[%s %s -an "%s"]],
 				base(string.format(filters.ffmpeg, v[1], v[2] - 1), input),
 				video_command(previous_cq),
 				final_output

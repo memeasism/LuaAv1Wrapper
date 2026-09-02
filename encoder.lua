@@ -146,7 +146,7 @@ for key, file in pairs(input) do --repeats these functions for all input files
 				output,
 				pl
 			) -- gets the encoder command
-			if video_command ~= "skip" then
+			if video_command == not ("skip" or "parallel") then
 				print("Executing: " .. video_command) --prints command
 				utils.execute(video_command) --executes command
 			end

@@ -53,7 +53,7 @@ local function get_vmaf(
 		local start_time = value[1]
 		local stop_time = value[2] - 1
 		local vmaf_command = string.format(
-			[[ffmpeg -i "%s" -i "%s" -filter_complex "[0:v:0]scale=1920:1080[distorted];[1:v:0]scale=1920:1080[reference];[distorted][reference]libvmaf" -f null -]],
+			[[ffmpeg -i "%s" -i "%s" -filter_complex "[0:v:0]scale=1920:1080[distorted];[1:v:0]scale=1920:1080[reference];[distorted][reference]libvmaf='n_threads=2:n_subsample=10'" -f null -]],
 			temporary,
 			reference
 		)

@@ -74,7 +74,6 @@ local function getvideo(
 		local txt_table = {}
 		local previous_time = 0
 		for line in io.lines(txt_file) do
-			print(line)
 			local time = line:match("pts:(%d+)")
 			local scene = line:match("frame:(%d+)")
 			if time and scene then
@@ -89,6 +88,7 @@ local function getvideo(
 		else
 			table.insert(txt_table, { tonumber(previous_time), tonumber(time), txt_table[#txt_table][3] + 1 })
 		end
+		pl.file.delete(txt_file)
 		return txt_table
 	end
 
@@ -112,9 +112,6 @@ local function getvideo(
 	if not noise then
 		noise = 0
 	end --sets noise to be what the user set
-	if args.video_quality then
-		video_quality = args.videoquality
-	end
 	--define the command functions
 	local function base(vspipe, file)
 		local command = string.format(
@@ -181,6 +178,37 @@ local function getvideo(
 		end
 		return scenes
 	end
+	local function parallel_final(results)
+		local function alphanumsort(o)
+			local function padnum(d)
+				return ("%03d%s"):format(#d, d)
+			end
+			table.sort(o, function(a, b)
+				return tostring(a):gsub([[_(%d+).mkv."$]], padnum) < tostring(b):gsub([[_(%d+).mkv."$]], padnum)
+			end)
+			return o
+		end
+		if #results > 1 then
+			results = alphanumsort(results)
+		end
+		pl.pretty(results)
+		for i, v in ipairs(results) do
+			pl.file.delete(cat_txt)
+			local success = pl.file.write(cat_txt, string.format([[file '%s']], v))
+			local count = 0
+			while (not success) or count < 100000 do
+				count = count + 1
+			end
+		end
+		local command = remux(input)
+		print(command)
+		utils.execute(command)
+		pl.file.delete(cat_txt)
+		for i, v in ipairs(results) do
+			pl.file.delete(v)
+		end
+		return "parallel"
+	end
 	--these set the commands for encoding
 	if video_codec == "av1" then
 		if gpu == 0 then
@@ -195,7 +223,7 @@ local function getvideo(
 		if gpu == 3 then
 			video_command = nvidiacmd
 		end]]
-		if not (video_quality or skip_vmaf) then
+		if (not video_quality) and not skip_vmaf then
 			local parallel = lanes.gen("*", parallel_encoding)
 			local threads = {}
 			local results = {}
@@ -233,28 +261,8 @@ local function getvideo(
 						end
 					end
 				end
-				local function alphanumsort(o)
-					local function padnum(d)
-						return ("%03d%s"):format(#d, d)
-					end
-					table.sort(o, function(a, b)
-						return tostring(a):gsub([[_(%d+).mkv."$]], padnum) < tostring(b):gsub([[_(%d+).mkv."$]], padnum)
-					end)
-					return o
-				end
-				if #results > 1 then
-					results = alphanumsort(results)
-				end
-				pl.pretty(results)
-				for i, v in ipairs(results) do
-					pl.file.delete(cat_txt)
-					utils.execute(string.format([[echo file %s >> %s]], v:gsub("\\", "/"), cat_txt))
-				end
-				local command = remux(input)
-				print(command)
-				utils.execute(command)
-				pl.file.delete(cat_txt)
-				utils.quit()
+
+				return parallel_final(results)
 			else
 				local scenes = get_scenes()
 				local divisor
@@ -320,7 +328,47 @@ local function getvideo(
 				video_quality = previous / #threads
 			end
 		else
+			print("poop")
 			video_quality = get_quality(input, ffprobe, gpu, args, pl)
+			local parallel = lanes.gen("*", parallel_encoding)
+			local threads = {}
+			local results = {}
+			if workers > 1 then
+				local current_worker = 0
+				local scenes = get_scenes()
+				scenes = split_table(scenes, workers)
+				for i, v in ipairs(scenes) do
+					current_worker = current_worker + 1
+					table.insert(
+						threads,
+						parallel(
+							input,
+							ffprobe,
+							gpu,
+							args,
+							output,
+							video_command,
+							get_quality,
+							base,
+							ffv1_command,
+							filters,
+							v,
+							true,
+							video_quality,
+							get_vmaf
+						)
+					)
+				end
+				for i, v in ipairs(threads) do
+					local result = v
+					for _, r in ipairs(result) do
+						for _, out in ipairs(r) do
+							table.insert(results, out)
+						end
+					end
+				end
+				return parallel_final(results)
+			end
 		end
 		video_command = video_command(video_quality)
 	end
@@ -337,7 +385,7 @@ local function getvideo(
 			base(string.format(filters.ffmpeg, 0, total_frames), input),
 			video_command,
 			audio_command,
-			utils.quote_arg(output)
+			output
 		)
 	end
 	return video_command
