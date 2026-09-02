@@ -148,7 +148,7 @@ local function getvideo(
 			local time = line:match("pts:(%d+)")
 			local scene = line:match("frame:(%d+)")
 			if time and scene then
-				time = math.floor(tonumber(time) / frame_multiplier)
+				time = math.floor((tonumber(time) / frame_multiplier) + 0.5)
 				table.insert(txt_table, { tonumber(previous_time), tonumber(time), tonumber(scene) + 1 })
 				previous_time = time
 			end
