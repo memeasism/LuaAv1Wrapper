@@ -75,28 +75,6 @@ local function getvideo(
 		end
 		return result
 	end
-	local function txt_decode(txt_file)
-		local txt_table = {}
-		local previous_time = 0
-		for line in io.lines(txt_file) do
-			local time = line:match("pts:(%d+)")
-			local scene = line:match("frame:(%d+)")
-			if time and scene then
-				table.insert(txt_table, { tonumber(previous_time), tonumber(time), tonumber(scene) + 1 })
-				previous_time = time
-			end
-		end
-
-		local time = (total_frames or previous_time) + 1
-		if previous_time == 0 then
-			table.insert(txt_table, { tonumber(previous_time), tonumber(time), 1 })
-		else
-			table.insert(txt_table, { tonumber(previous_time), tonumber(time), txt_table[#txt_table][3] + 1 })
-		end
-		pl.file.delete(txt_file)
-		return txt_table
-	end
-
 	for key, value in pairs(no_subtitle_extensions) do
 		if string.match(output_format, value) then
 			skip_subtitles = "-sn"
@@ -163,6 +141,29 @@ local function getvideo(
 		)
 		return string
 	end
+	local function txt_decode(txt_file)
+		local txt_table = {}
+		local previous_time = 0
+		for line in io.lines(txt_file) do
+			local time = line:match("pts:(%d+)")
+			local scene = line:match("frame:(%d+)")
+			if time and scene then
+				time = math.floor(tonumber(time) / frame_multiplier)
+				table.insert(txt_table, { tonumber(previous_time), tonumber(time), tonumber(scene) + 1 })
+				previous_time = time
+			end
+		end
+
+		local time = (total_frames or previous_time) + 1
+		if previous_time == 0 then
+			table.insert(txt_table, { tonumber(previous_time), tonumber(time), 1 })
+		else
+			table.insert(txt_table, { tonumber(previous_time), tonumber(time), txt_table[#txt_table][3] + 1 })
+		end
+		pl.file.delete(txt_file)
+		return txt_table
+	end
+
 	local function get_scenes()
 		local vmaf_split_command
 		pl.file.delete(txt) --delete leftovers from a possibly failed encode
