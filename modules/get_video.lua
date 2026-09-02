@@ -33,28 +33,32 @@ local function getvideo(
 	local nb_frames = ffprobe.video.streams[1].nb_frames
 	local fallback_frames = ffprobe.video.format.duration
 	local keyframe_interval = math.floor(fps_number * 10)
-	if nb_frames then
-		total_frames = tonumber(nb_frames) - 1
-	else
-		print("Could not get frame count from ffprobe, counting frames!")
-		total_frames = count_frames(input, pl)
-		if total_frames then
-			total_frames = total_frames - 1
-		else
-			print("Counting frames failed, time to guess!")
-			total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
-		end
-	end
-	if (not total_frames) or (total_frames == "error") then
-		print("Error getting file duration, skipping!")
-		return "skip"
-	end
+	local workers = args.workers or 1
 	local video_quality = args.videoquality
+	if not next and not video_quality and not skip_vmaf then
+		if nb_frames then
+			total_frames = tonumber(nb_frames) - 1
+		else
+			print("Could not get frame count from ffprobe, counting frames!")
+			total_frames = count_frames(input, pl)
+			if total_frames then
+				total_frames = total_frames - 1
+			else
+				print("Counting frames failed, time to guess!")
+				total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
+			end
+		end
+		if (not total_frames) or (total_frames == "error") then
+			print("Error getting file duration, skipping!")
+			return "skip"
+		end
+	else
+		workers = 1
+	end
 	local skip_subtitles
 	local video_command
 	local remux_command
 	local merge_command
-	local workers = args.workers or 1
 	local vmaf_workers = args.vworkers or 2
 	local noise = args.noise
 	--set values according to certain factors
@@ -336,16 +340,14 @@ file '%s']],
 				video_quality = previous / #threads
 			end
 		else
-			print("poop")
 			video_quality = get_quality(input, ffprobe, gpu, args, pl)
 			local parallel = lanes.gen("*", parallel_encoding)
 			local threads = {}
 			local results = {}
 			if workers > 1 then
 				local current_worker = 0
-				local scenes = get_scenes()
-				scenes = split_table(scenes, workers)
-				for i, v in ipairs(scenes) do
+				for v = 1, workers do
+					print("E")
 					current_worker = current_worker + 1
 					table.insert(
 						threads,
@@ -360,7 +362,7 @@ file '%s']],
 							base,
 							ffv1_command,
 							filters,
-							v,
+							{ { 1, 1, 1 } },
 							true,
 							video_quality,
 							get_vmaf
@@ -371,6 +373,8 @@ file '%s']],
 					local result = v
 					for _, r in ipairs(result) do
 						for _, out in ipairs(r) do
+							print(out)
+							pl.utils.quit()
 							table.insert(results, out)
 						end
 					end
@@ -388,13 +392,14 @@ file '%s']],
 		utils.quit()
 	end
 	if video_command ~= "skip" then
-		video_command = string.format(
-			"%s %s %s %s",
-			base(string.format(filters.ffmpeg, 0, total_frames), input),
-			video_command,
-			audio_command,
-			output
-		)
+		local command_base
+		if total_frames then
+			command_base = base(string.format(filters.ffmpeg, 0, total_frames), input)
+		else
+			command_base =
+				base(string.gsub(string.gsub(string.format(filters.ffmpeg, "", ""), "-s", ""), "-e", ""), input)
+		end
+		video_command = string.format([[%s %s %s "%s"]], command_base, video_command, audio_command, output)
 	end
 	return video_command
 end
