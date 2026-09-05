@@ -379,7 +379,7 @@ file '%s']],
 							base,
 							ffv1_command,
 							filters,
-							{ { 1, 1, 1 } },
+							v,
 							true,
 							video_quality,
 							get_vmaf
@@ -390,8 +390,6 @@ file '%s']],
 					local result = v
 					for _, r in ipairs(result) do
 						for _, out in ipairs(r) do
-							print(out)
-							pl.utils.quit()
 							table.insert(results, out)
 						end
 					end
