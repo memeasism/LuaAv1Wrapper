@@ -22,8 +22,6 @@ local function ffprobe(input, pl, cjson)
 		print("FFprobe failed")
 		pl.utils.quit()
 	end
-	pl.pretty(probe)
-	pl.utils.quit()
 	return probe
 end
 return ffprobe

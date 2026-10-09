@@ -23,12 +23,12 @@ local function parallel_encoding(
 	local command_base
 	for i, v in ipairs(scenes) do
 		if quality == false then
-			local previous_time = v[1]
-			local time = v[2]
-			local scene = v[3]
-			if time - previous_time > length then
-				previous_time = math.random(previous_time, (time - length))
-				time = previous_time + length
+			local vmaf_previous_time = v[1]
+			local vmaf_time = v[2]
+			local vmaf_scene = v[3]
+			if vmaf_time - vmaf_previous_time > length then
+				vmaf_previous_time = math.random(vmaf_previous_time, (vmaf_time - length))
+				vmaf_previous_timetime = vmaf_previous_time + length
 			end
 			previous_cq = get_vmaf(
 				input,
@@ -43,9 +43,9 @@ local function parallel_encoding(
 				ffv1_command,
 				filters,
 				scenes,
-				previous_time,
-				time,
-				scene,
+				vmaf_previous_time,
+				vmaf_time,
+				vmaf_scene,
 				previous_cq
 			)
 			command_base = base(string.format(filters.ffmpeg, v[1], v[2] - 1), input)
