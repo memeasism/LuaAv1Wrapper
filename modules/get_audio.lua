@@ -21,12 +21,13 @@ local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
 	local passcmd = " -c:a copy" --the command used if audio is to be passed
 	local function opuscmd(bitrate)
 		local command = string.format(
-			[[-c:a libopus -af aformat=channel_layouts="7.1|5.1|stereo" -mapping_family 1 -b:a %s -vbr on -compression_level 7]],
+			[[-c:a libopus -af aformat=channel_layouts="7.1|5.1|stereo",asetpts=PTS-STARTPTS -mapping_family 1 -b:a %s -vbr on -compression_level 7]],
 			bitrate
 		)
 		return command
 	end
-	local flaccmd = [[-c:a flac -af aformat=channel_layouts="7.1|5.1|stereo" -mapping_family 1 -compression_level 7]]
+	local flaccmd =
+		[[-c:a flac -af aformat=channel_layouts="7.1|5.1|stereo",asetpts=PTS-STARTPTS -mapping_family 1 -compression_level 7]]
 	--these set the commands for encoding
 	local audioprobe = ffprobe.audio.streams[1]
 	if args.audiobitrate then

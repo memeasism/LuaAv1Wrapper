@@ -98,11 +98,12 @@ local function getvideo(
 		noise = 0
 	end --sets noise to be what the user set
 	--define the command functions
-	local function base(vspipe, file)
+	local function base(vspipe, file, pre_roll)
 		local command = string.format(
-			[[%s ffmpeg -i "%s" -f yuv4mpegpipe -i pipe: -filter_complex "[1:v:0]setdar=%s" -map 1:v:0 -map 0:a? -map 0:s? -c:s copy %s -fflags +genpts -async 0]],
+			[[%s ffmpeg -i "%s" -f yuv4mpegpipe -i pipe: -filter_complex "[1:v:0]trim=start_frame=%s,setpts=PTS-STARTPTS,setdar=%s[out]" -map "[out]" -map 0:a? -map 0:s? -c:s copy %s -async 0]],
 			vspipe,
 			file,
+			pre_roll,
 			aspect,
 			skip_subtitles
 		)
@@ -112,7 +113,7 @@ local function getvideo(
 	local function remux(file)
 		local command
 		command = string.format(
-			[[ffmpeg -f concat -safe 0  -i "%s" -i "%s" -map 0:v:0 -map 1:a? -map 1:s? -c:v copy -aspect %s -c:s copy -fflags +genpts -avoid_negative_ts make_zero -async 0  %s %s "%s"]],
+			[[ffmpeg -fflags +genpts -f concat -safe 0  -i "%s" -i "%s" -map 0:v:0 -map 1:a? -map 1:s? -c:v copy -aspect %s -c:s copy -avoid_negative_ts make_zero %s %s "%s"]],
 			cat_txt,
 			file,
 			string.gsub(aspect, "/", ":"),
@@ -123,11 +124,9 @@ local function getvideo(
 		return command
 	end
 	local function cpu_command(quality, args, skip_noise)
-		local noise
+		local noise = args.noise
 		if skip_noise == true then
 			noise = 0
-		else
-			noise = args.noise
 		end
 		local command
 		command = string.format(
@@ -407,7 +406,7 @@ file '%s']],
 				return parallel_final(results)
 			end
 		end
-		video_command = video_command(video_quality)
+		video_command = video_command(video_quality, args, false)
 	end
 	if video_codec == "ffv1" then
 		video_command = ffv1_command
@@ -419,10 +418,10 @@ file '%s']],
 	if video_command ~= "skip" then
 		local command_base
 		if total_frames then
-			command_base = base(string.format(filters.ffmpeg, 0, total_frames), input)
+			command_base = base(string.format(filters.ffmpeg, 0, total_frames), input, 0)
 		else
 			command_base =
-				base(string.gsub(string.gsub(string.format(filters.ffmpeg, "", ""), "-s", ""), "-e", ""), input)
+				base(string.gsub(string.gsub(string.format(filters.ffmpeg, "", ""), "-s", ""), "-e", ""), input, 0)
 		end
 		video_command = string.format([[%s %s %s "%s"]], command_base, video_command, audio_command, output)
 	end

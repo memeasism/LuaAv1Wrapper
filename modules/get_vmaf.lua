@@ -14,7 +14,8 @@ local function get_vmaf(
 	start_frame,
 	end_frame,
 	scene,
-	previous_cq
+	previous_cq,
+	pre_roll
 )
 	local vmaf_model = "vmaf_v0.6.1"
 	if tonumber(ffprobe.video.streams[1].height) then
@@ -31,7 +32,7 @@ local function get_vmaf(
 		return result
 	end
 	vmaf = vmaf_range(
-		args.vmaf or 97, --[[(Start)From my understanding the optimal "visually lossless" VMAF score]]
+		args.vmaf or 98, --[[(Start)From my testing the optimal "visually lossless" VMAF score]]
 		args.fallbackvmaf or 80 --[[(Stop) just picked a low vmaf number]]
 	)
 	--set static variables
@@ -41,10 +42,10 @@ local function get_vmaf(
 	local current_vmaf = 0
 	local current_command
 	local scene_frames = {}
-	local vmaf_to_cq = {}
+	local vmaf_values = {}
 	local count = 0
-	local cq = 42
-	local old_cq = previous_cq or 42
+	local cq = 36
+	local old_cq = previous_cq or 36
 	local divisor
 	local temporary = string.format("%s_%s_temp.mkv", output, scene)
 	local reference = string.format("%s_%s_ref.mkv", temporary, scene)
@@ -54,7 +55,6 @@ local function get_vmaf(
 	for key, value in pairs(scene_frames) do
 		pl.file.delete(reference) --delete previous reference/reference reference from failed encode
 		cq = old_cq + 8 --set cq back to 50 or a safe starting point for a new scene
-		local vmaf_values = {}
 		local scene_success
 		local start_time = value[1]
 		local stop_time = value[2] - 1
@@ -66,7 +66,7 @@ local function get_vmaf(
 		)
 		local reference_command = string.format(
 			[[%s -an -sn %s "%s"]],
-			base(string.format(filters.proxy.ffmpeg, start_time, stop_time), input),
+			base(string.format(filters.proxy.ffmpeg, start_time, stop_time), input, pre_roll),
 			ffv1_command,
 			reference
 		)
@@ -83,12 +83,8 @@ local function get_vmaf(
 					cq = cq - 2
 					pl.file.delete(temporary) --delete old temp file
 					local command = video_command(cq, args, true)
-					local temporary_command = string.format(
-						[[ffmpeg -i "%s" -map 0:v:0 -fflags +genpts -async 0 %s "%s"]],
-						reference,
-						command,
-						temporary
-					)
+					local temporary_command =
+						string.format([[ffmpeg -i "%s" -map 0:v:0 %s "%s"]], reference, command, temporary)
 					local command_success = utils.executeex(temporary_command)
 					if not command_success then
 						print("encoding to av1 failed!")
@@ -99,7 +95,7 @@ local function get_vmaf(
 						local vmaf_score = tonumber(vmaf_string)
 						if vmaf_score then
 							current_vmaf = vmaf_score
-							vmaf_values[#vmaf_values + 1] = { vmaf_score, cq }
+							table.insert(vmaf_values, { vmaf_score, cq })
 						end
 					end
 				end
@@ -135,7 +131,7 @@ local function get_vmaf(
 	pl.file.delete(temporary)
 	pl.file.delete(reference)
 	--make sure that there are enough cq values to parse
-	if #vmaf_to_cq < divisor then
+	if not video_quality then
 		--if there's not enough cq values, it does a fallback
 		print("failed to get the vmaf score, requesting from module or using fallback")
 		if args.fallbackquality then
