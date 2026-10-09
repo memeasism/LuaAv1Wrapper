@@ -34,13 +34,7 @@ local function parallel_encoding(
 			if vmaf_time - vmaf_previous_time > length then
 				vmaf_previous_time = math.random(vmaf_previous_time, (vmaf_time - length))
 				vmaf_time = vmaf_previous_time + length
-			else
-				if total_frames - vmaf_previous_time > length then
-					vmaf_time = vmaf_time - (vmaf_time - vmaf_previous_time) + length
-				else
-					vmaf_previous_time = math.max(0, (vmaf_previous_time - length))
-				end
-			end --10 seconds seems to be the magic number for vmaf, so we ensure a scene segment is at least 10 seconds, even if technically un needed, I noticed that I get scenes that are less than like 2 seconds, and look terrible.
+			end --10 seconds seems to be the magic number for vmaf, so we ensure a scene segment is at most 10 seconds.
 			vmaf_pre_roll = math.min(vmaf_previous_time, length)
 			vmaf_previous_time = vmaf_previous_time - vmaf_pre_roll
 			previous_cq = get_vmaf(
