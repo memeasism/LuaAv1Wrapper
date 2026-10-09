@@ -285,7 +285,8 @@ file '%s']],
 							true,
 							false,
 							get_vmaf,
-							fps_number
+							fps_number,
+							total_frames
 						)
 					)
 				end
@@ -342,7 +343,8 @@ file '%s']],
 							false,
 							false,
 							get_vmaf,
-							fps_number
+							fps_number,
+							total_frames
 						)
 					)
 				end
@@ -391,7 +393,8 @@ file '%s']],
 							true,
 							video_quality,
 							get_vmaf,
-							fps_number
+							fps_number,
+							total_frames
 						)
 					)
 				end
