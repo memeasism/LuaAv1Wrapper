@@ -12,8 +12,10 @@ local function parallel_encoding(
 	scenes,
 	parallel,
 	quality,
-	get_vmaf
+	get_vmaf,
+	fps_number
 )
+	local length = math.floor((fps_number * 10) + 0.5) --find vmaf bases upon 10 second segments of a scene, this works pretty great since scene have to be uniform enough throughout to not be detected as a new one.
 	local output_table = {}
 	local previous_cq
 	local pl = require("pl.import_into")()
@@ -21,6 +23,13 @@ local function parallel_encoding(
 	local command_base
 	for i, v in ipairs(scenes) do
 		if quality == false then
+			local previous_time = v[1]
+			local time = v[2]
+			local scene = v[3]
+			if time - previous_time > length then
+				previous_time = math.random(previous_time, (time - length))
+				time = previous_time + length
+			end
 			previous_cq = get_vmaf(
 				input,
 				ffprobe,
@@ -34,9 +43,9 @@ local function parallel_encoding(
 				ffv1_command,
 				filters,
 				scenes,
-				v[1],
-				v[2],
-				v[3],
+				previous_time,
+				time,
+				scene,
 				previous_cq
 			)
 			command_base = base(string.format(filters.ffmpeg, v[1], v[2] - 1), input)
@@ -49,8 +58,12 @@ local function parallel_encoding(
 			table.insert(output_table, previous_cq)
 		else
 			local final_output = (string.format("%s_%s.%s", output, v[3], "mkv"))
-			local final_command =
-				string.format([[%s %s -an "%s"]], command_base, video_command(previous_cq), final_output)
+			local final_command = string.format(
+				[[%s %s -an -sn "%s"]],
+				command_base,
+				video_command(previous_cq, args, false),
+				final_output
+			)
 			table.insert(output_table, final_output)
 			print(string.format("Running Command: %s", final_command))
 			utils.execute(final_command)

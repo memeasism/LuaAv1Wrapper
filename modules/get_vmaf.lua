@@ -16,6 +16,12 @@ local function get_vmaf(
 	scene,
 	previous_cq
 )
+	local vmaf_model = "vmaf_v0.6.1"
+	if tonumber(ffprobe.video.streams[1].height) then
+		if tonumber(ffprobe.video.streams[1].height) >= 2160 then
+			vmaf_model = "vmaf_4k_v0.6.1"
+		end
+	end
 	local vmaf
 	local function vmaf_range(start, stop)
 		local result = {}
@@ -53,12 +59,13 @@ local function get_vmaf(
 		local start_time = value[1]
 		local stop_time = value[2] - 1
 		local vmaf_command = string.format(
-			[[ffmpeg -i "%s" -i "%s" -filter_complex "[0:v:0]scale=1920:1080[distorted];[1:v:0]scale=1920:1080[reference];[distorted][reference]libvmaf=n_threads=2:n_subsample=10" -f null -]],
+			[[ffmpeg -i "%s" -i "%s" -filter_complex "libvmaf=version=%s:n_threads=2:n_subsample=2" -f null -]],
 			temporary,
-			reference
+			reference,
+			vmaf_model
 		)
 		local reference_command = string.format(
-			[[%s -an %s "%s"]],
+			[[%s -an -sn %s "%s"]],
 			base(string.format(filters.proxy.ffmpeg, start_time, stop_time), input),
 			ffv1_command,
 			reference
@@ -75,9 +82,9 @@ local function get_vmaf(
 				while current_vmaf < target_vmaf and cq > 2 do
 					cq = cq - 2
 					pl.file.delete(temporary) --delete old temp file
-					local command = video_command(cq)
+					local command = video_command(cq, args, true)
 					local temporary_command = string.format(
-						[[ffmpeg -i "%s" -map 0:v:0 -map 0:a? -map 0:s? -c:s copy -c:a copy -fflags +genpts -async 0 %s "%s"]],
+						[[ffmpeg -i "%s" -map 0:v:0 -fflags +genpts -async 0 %s "%s"]],
 						reference,
 						command,
 						temporary
@@ -107,7 +114,7 @@ local function get_vmaf(
 			end
 			if current_vmaf >= target_vmaf then
 				scene_success = true
-				vmaf_to_cq[#vmaf_to_cq + 1] = cq
+				video_quality = cq
 				cq = cq + 8 --add 6 but also 2 more due to how the loop works, this way we waste less time narrowing the vmaf in theory
 				if cq > 42 then
 					cq = 42
@@ -137,7 +144,7 @@ local function get_vmaf(
 			video_quality = get_quality(input, ffprobe, gpu, args, pl)
 		end
 	else
-		video_quality = cq
+		video_quality = video_quality
 	end
 	return video_quality
 end

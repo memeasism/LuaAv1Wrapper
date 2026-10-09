@@ -61,7 +61,6 @@ local function getvideo(
 	local remux_command
 	local merge_command
 	local vmaf_workers = args.vworkers or 2
-	local noise = args.noise
 	--set values according to certain factors
 	local function split_table(tbl, amount)
 		local result = {}
@@ -123,7 +122,13 @@ local function getvideo(
 		)
 		return command
 	end
-	local function cpu_command(quality)
+	local function cpu_command(quality, args, skip_noise)
+		local noise
+		if skip_noise == true then
+			noise = 0
+		else
+			noise = args.noise
+		end
 		local command
 		command = string.format(
 			[[-c:v libsvtav1 -crf %s -preset 4 -g %s -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:enable-qm=1:scd=1:lookahead=120:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
@@ -200,11 +205,13 @@ local function getvideo(
 	end
 	local function parallel_final(results)
 		local function alphanumsort(o)
-			local function padnum(d)
-				return ("%03d%s"):format(#d, d)
-			end
 			table.sort(o, function(a, b)
-				return tostring(a):gsub([[_(%d+).mkv."$]], padnum) < tostring(b):gsub([[_(%d+).mkv."$]], padnum)
+				local number_a = tonumber(tostring(a):match("_(%d+)%.mkv$"))
+				local number_b = tonumber(tostring(b):match("_(%d+)%.mkv$"))
+				if number_a and number_b then
+					return number_a < number_b
+				end
+				return tostring(a) < tostring(b)
 			end)
 			return o
 		end
@@ -278,7 +285,8 @@ file '%s']],
 							v,
 							true,
 							false,
-							get_vmaf
+							get_vmaf,
+							fps_number
 						)
 					)
 				end
@@ -302,7 +310,7 @@ file '%s']],
 					while count < test_scene_count do
 						local random = math.random(1, #scenes)
 						if not scene_frames[random] then
-							scene_frames[random] = scenes[random]
+							table.insert(scene_frames, scenes[random])
 							count = count + 1
 						end
 					end
@@ -334,7 +342,8 @@ file '%s']],
 							v,
 							false,
 							false,
-							get_vmaf
+							get_vmaf,
+							fps_number
 						)
 					)
 				end
@@ -346,7 +355,7 @@ file '%s']],
 						end
 					end
 				end
-				local previous
+				local previous = nil
 				for i, v in pairs(results) do
 					if previous then
 						previous = previous + v
@@ -382,7 +391,8 @@ file '%s']],
 							v,
 							true,
 							video_quality,
-							get_vmaf
+							get_vmaf,
+							fps_number
 						)
 					)
 				end
