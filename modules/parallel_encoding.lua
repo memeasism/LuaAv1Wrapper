@@ -28,7 +28,7 @@ local function parallel_encoding(
 			local vmaf_scene = v[3]
 			if vmaf_time - vmaf_previous_time > length then
 				vmaf_previous_time = math.random(vmaf_previous_time, (vmaf_time - length))
-				vmaf_previous_time = vmaf_previous_time + length
+				vmaf_time = vmaf_previous_time + length
 			end
 			previous_cq = get_vmaf(
 				input,
