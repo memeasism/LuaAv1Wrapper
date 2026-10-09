@@ -59,7 +59,7 @@ local function get_vmaf(
 		local start_time = value[1]
 		local stop_time = value[2] - 1
 		local vmaf_command = string.format(
-			[[ffmpeg -i "%s" -i "%s" -filter_complex "libvmaf=version=%s:n_threads=2:n_subsample=2" -f null -]],
+			[[ffmpeg -i "%s" -i "%s" -filter_complex "libvmaf=model=version=%s:n_threads=2:n_subsample=2" -f null -]],
 			temporary,
 			reference,
 			vmaf_model
