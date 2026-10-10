@@ -1,16 +1,20 @@
 local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
+	local passcodecs = {
+		"flac",
+		"dts",
+		"opus",
+	} --obviously pass flac and opus, but also, dts has been giving me issues, so we pass instead
+	local problemcodecs = {
+		"dts",
+	}
 	local losslesscodecs = {
 		"pcm",
-		"flac",
-		"dts-hd",
 		"alac",
 		"truehd",
 	} --list of lossless codecs the source can be
 	local lossycodecs = {
-		"opus",
 		"ac3",
 		"aac",
-		"dts",
 		"mpeg",
 	} --list of lossy codecs the source can be
 	local audiocmd --prepares the audiocmd
@@ -43,10 +47,25 @@ local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
 			print("Could not find audio codec name")
 			return "error"
 		end
-		for k, v in pairs(losslesscodecs) do
+		for k, v in pairs(passcodecs) do
 			if string.find(audioprobe.codec_name, v) then
-				audiocodec = "flac"
+				audiopass = true
+				audiocodec = "pass"
+				for l, w in pairs(problemcodecs) do
+					if string.find(audioprobe.codec_name, w) then
+						passcmd = passcmd .. " -copytb 0 -max_interleave_delta 0"
+					end
+				end
 				break
+			end
+		end
+
+		if audiocodec == nil then
+			for k, v in pairs(losslesscodecs) do
+				if string.find(audioprobe.codec_name, v) then
+					audiocodec = "flac"
+					break
+				end
 			end
 		end
 		if audiocodec == nil then

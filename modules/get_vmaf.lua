@@ -44,6 +44,7 @@ local function get_vmaf(
 	local scene_frames = {}
 	local vmaf_values = {}
 	local count = 0
+	local max_cq = 36
 	local cq = 36
 	local old_cq = previous_cq or 36
 	local divisor
@@ -112,8 +113,8 @@ local function get_vmaf(
 				scene_success = true
 				video_quality = cq
 				cq = cq + 8 --add 6 but also 2 more due to how the loop works, this way we waste less time narrowing the vmaf in theory
-				if cq > 42 then
-					cq = 42
+				if cq > max_cq then
+					cq = max_cq
 				end
 				old_cq = cq
 				current_vmaf = 0

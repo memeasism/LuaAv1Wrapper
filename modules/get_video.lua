@@ -113,7 +113,7 @@ local function getvideo(
 	local function remux(file)
 		local command
 		command = string.format(
-			[[ffmpeg -fflags +genpts -f concat -safe 0  -i "%s" -i "%s" -map 0:v:0 -map 1:a? -map 1:s? -c:v copy -aspect %s -c:s copy -avoid_negative_ts make_zero %s %s "%s"]],
+			[[ffmpeg -fflags +genpts -f concat -safe 0  -i "%s" -i "%s" -map 0:v:0 -map 1:a? -map 1:s? -c:v copy -aspect %s -c:s copy -avoid_negative_ts make_zero -copytb 0 -max_interleave_delta 0 %s %s "%s"]],
 			cat_txt,
 			file,
 			string.gsub(aspect, "/", ":"),
