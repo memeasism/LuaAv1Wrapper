@@ -165,11 +165,8 @@ local function getvideo(
 		)
 		return command
 	end
-	local function cpu_command(quality, args, skip_noise)
+	local function cpu_command(quality, args, noise)
 		local noise = args.noise
-		if skip_noise == true then
-			noise = 0
-		end
 		local command
 		command = string.format(
 			[[-c:v libsvtav1 -crf %s -preset 4 -g %s -level 5.1 -tier high -pix_fmt yuv420p10le -vtag av01 -svtav1-params "tune=0:enable-qm=1:scd=1:lookahead=120:film-grain=%s:film-grain-denoise=1:enable-overlays=1"]],
@@ -321,7 +318,8 @@ file '%s']],
 							fps_number,
 							total_frames,
 							temp_folder,
-							resume
+							resume,
+							noise
 						)
 					)
 				end
@@ -381,7 +379,8 @@ file '%s']],
 							fps_number,
 							total_frames,
 							temp_folder,
-							resume
+							resume,
+							noise
 						)
 					)
 				end
@@ -433,7 +432,8 @@ file '%s']],
 							fps_number,
 							total_frames,
 							temp_folder,
-							resume
+							resume,
+							noise
 						)
 					)
 				end

@@ -89,7 +89,7 @@ local function get_vmaf(
 					end
 					cq = math.floor((low + high) / 2)
 					pl.file.delete(temporary) --delete old temp file
-					local command = video_command(cq, args, true)
+					local command = video_command(cq, args, 0)
 					local temporary_command =
 						string.format([[ffmpeg -i "%s" -map 0:v:0 %s "%s"]], reference, command, temporary)
 					local command_success = utils.executeex(temporary_command)
@@ -114,9 +114,6 @@ local function get_vmaf(
 							high = cq - 1
 						end
 					end
-				end
-				if current_vmaf >= target_vmaf then
-					video_quality = old_cq
 				end
 			end
 			for key, vmaf_value in pairs(vmaf_values) do

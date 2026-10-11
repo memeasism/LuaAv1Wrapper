@@ -16,7 +16,8 @@ local function parallel_encoding(
 	fps_number,
 	total_frames,
 	temp_folder,
-	resume
+	resume,
+	noise
 )
 	math.randomseed(os.time())
 	local length = math.floor((fps_number * 10) + 0.5) --find vmaf bases upon 10 second segments of a scene, this works pretty great since scene have to be uniform enough throughout to not be detected as a new one.
@@ -82,7 +83,7 @@ local function parallel_encoding(
 				local final_command = string.format(
 					[[%s %s -an -sn "%s"]],
 					command_base,
-					video_command(previous_cq, args, false),
+					video_command(previous_cq, args, noise),
 					intermediary_output
 				)
 				table.insert(output_table, final_output)
