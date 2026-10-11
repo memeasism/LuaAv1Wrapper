@@ -76,8 +76,8 @@ local function getvideo(
 		path.mkdir(temp_folder)
 		if parallel and not video_quality and not skip_vmaf then
 			if nb_frames then
-				--total_frames = tonumber(nb_frames) - 1
-				--else
+				total_frames = tonumber(nb_frames) - 1
+			else
 				print("Could not get frame count from ffprobe, counting frames!")
 				total_frames = count_frames(input, pl)
 				if total_frames then
