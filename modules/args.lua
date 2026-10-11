@@ -30,7 +30,7 @@ local function getargs(pl)
 	--vmaf (optional 1..100) Target vmaf score, higher = better quality
 	--fallbackvmaf (optional 1..100) The lowest vmaf you will accept
 	-s,--skipvmaf		Your video will be encoded using the stored quality values instead of dynamically finding the best quality for your content type
-	--mkv		Your outputs will be mkv files, FOR BATCH PROCESSING!
+	--webm		Your outputs will be webm files, FOR BATCH PROCESSING!
 	-m,--mass		Lets the script know that your input is a folder
 	<output> (optional string) The output file or directory
 	]])

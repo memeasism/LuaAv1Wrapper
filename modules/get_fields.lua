@@ -90,7 +90,7 @@ local function getfilters(input, args)
 		print("I don't know what went wrong")
 		return "error"
 	end
-	print(string.format("The input video is: %s, cancel immediately and use the flags othewise", content))
+	print(string.format("The input video is: %s, cancel immediately and use the flags otherwise", content))
 	return content
 end
 return getfilters

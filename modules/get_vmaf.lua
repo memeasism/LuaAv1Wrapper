@@ -44,9 +44,9 @@ local function get_vmaf(
 	local scene_frames = {}
 	local vmaf_values = {}
 	local count = 0
-	local max_cq = 36
-	local cq = 36
-	local old_cq = previous_cq or 36
+	local low, high = 2, (42 or previous_cq)
+	local cq = 42
+	local old_cq = 42
 	local divisor
 	local temporary = string.format("%s_%s_temp.mkv", output, scene)
 	local reference = string.format("%s_%s_ref.mkv", temporary, scene)
@@ -80,8 +80,8 @@ local function get_vmaf(
 		end
 		for key, target_vmaf in pairs(vmaf) do
 			if not vmaf_values[1] then --checks if the vmaf_values table exists, this table is so we can encode less saving the user time and money!
-				while current_vmaf < target_vmaf and cq > 2 do
-					cq = cq - 2
+				for _ = 1, 6 do
+					cq = math.floor((low + high) / 2)
 					pl.file.delete(temporary) --delete old temp file
 					local command = video_command(cq, args, true)
 					local temporary_command =
@@ -98,34 +98,25 @@ local function get_vmaf(
 							current_vmaf = vmaf_score
 							table.insert(vmaf_values, { vmaf_score, cq })
 						end
+						if current_vmaf >= target_vmaf then
+							old_cq = cq
+							high = cq - 1
+						else
+							low = cq + 1
+						end
 					end
 				end
+				video_quality = old_cq
 			end
 			for key, vmaf_value in pairs(vmaf_values) do
 				if vmaf_value[1] >= target_vmaf then
 					--this is such simple code that saves so much time and money, idk why but I just felt this should be pointed out, maybe because some people might not think of it
 					current_vmaf = vmaf_value[1]
 					cq = vmaf_value[2]
+					video_quality = old_cq
 					break
 				end
 			end
-			if current_vmaf >= target_vmaf then
-				scene_success = true
-				video_quality = cq
-				cq = cq + 8 --add 6 but also 2 more due to how the loop works, this way we waste less time narrowing the vmaf in theory
-				if cq > max_cq then
-					cq = max_cq
-				end
-				old_cq = cq
-				current_vmaf = 0
-				--if vmaf is set successfully then break the loop and set current vmaf to a better starting position to reach the vmaf faster
-				break
-			else
-				cq = old_cq
-			end
-		end
-		if not scene_success then --checks if a scene failed to encode and breaks
-			break
 		end
 	end
 	--delete temp files

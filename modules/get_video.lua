@@ -16,13 +16,15 @@ local function getvideo(
 	gpu,
 	no_subtitle_extensions,
 	output,
-	pl
+	pl,
+	temp_folder,
+	resume
 )
 	--define static variables
 	local test_scene_count = 8
-	local txt = "av1_scenes.txt"
-	local cat_txt = "cat.txt"
 	local path = pl.path
+	local txt = path.join(temp_folder, "av1_scenes.txt")
+	local cat_txt = path.join(temp_folder, "cat.txt")
 	local output_format = path.extension(output)
 	local skip_vmaf = args.skipvmaf
 	local utils = pl.utils
@@ -33,29 +35,77 @@ local function getvideo(
 	local nb_frames = ffprobe.video.streams[1].nb_frames
 	local fallback_frames = ffprobe.video.format.duration
 	local keyframe_interval = math.floor(fps_number * 10)
+	local scenes
 	local workers = args.workers or 1
 	local video_quality = args.videoquality
 	local parallel = workers > 1
-	if parallel and not video_quality and not skip_vmaf then
-		if nb_frames then
-			total_frames = tonumber(nb_frames) - 1
-		else
-			print("Could not get frame count from ffprobe, counting frames!")
-			total_frames = count_frames(input, pl)
-			if total_frames then
-				total_frames = total_frames - 1
-			else
-				print("Counting frames failed, time to guess!")
-				total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
+	local frame_multiplier = 1
+	if string.find(content, "Telecined") or string.find(content, "Mixed") then
+		frame_multiplier = 0.8
+		fps_number = fps_number * frame_multiplier
+	end
+	if string.find(content, "Interlaced") then
+		frame_multiplier = 2
+		fps_number = fps_number * frame_multiplier
+	end
+	local function scene_match(file)
+		return tonumber(tostring(file):match("_(%d+)%.mkv$"))
+	end
+	local function txt_decode(txt_file)
+		local txt_table = {}
+		local previous_time = 0
+		for line in io.lines(txt_file) do
+			local time = line:match("pts:(%d+)")
+			local scene = line:match("frame:(%d+)")
+			if time and scene then
+				local scene_number = tonumber(scene) + 1
+				time = math.floor((tonumber(time) / frame_multiplier) + 0.5)
+				table.insert(txt_table, { tonumber(previous_time), tonumber(time), scene_number })
+				previous_time = time
 			end
 		end
-		if (not total_frames) or (total_frames == "error") then
-			print("Error getting file duration, skipping!")
-			return "skip"
+		local time = (total_frames or previous_time) + 1
+		if previous_time == 0 then
+			table.insert(txt_table, { tonumber(previous_time), tonumber(time), 1 })
+		else
+			table.insert(txt_table, { tonumber(previous_time), tonumber(time), txt_table[#txt_table][3] + 1 })
+		end
+		return txt_table
+	end
+	if not path.isfile(txt) then
+		path.mkdir(temp_folder)
+		if parallel and not video_quality and not skip_vmaf then
+			if nb_frames then
+				--total_frames = tonumber(nb_frames) - 1
+				--else
+				print("Could not get frame count from ffprobe, counting frames!")
+				total_frames = count_frames(input, pl)
+				if total_frames then
+					total_frames = total_frames - 1
+				else
+					print("Counting frames failed, time to guess!")
+					total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
+				end
+			end
+			if (not total_frames) or (total_frames == "error") then
+				print("Error getting file duration, skipping!")
+				return "skip"
+			end
+		else
+			workers = 1
 		end
 	else
-		workers = 1
+		scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
+		if scenes then
+			scenes = txt_decode(txt)
+		end
+		if not scenes then
+			print("Unable to decode the scenes txt file")
+			return "skip"
+		end
+		total_frames = scenes[#scenes][2] - 1
 	end
+
 	local skip_subtitles
 	local video_command
 	local remux_command
@@ -75,22 +125,14 @@ local function getvideo(
 		return result
 	end
 	for key, value in pairs(no_subtitle_extensions) do
-		if string.match(output_format, value) then
+		if output_format:match(value) then
 			skip_subtitles = "-sn"
 		end
 	end
 	if not skip_subtitles then
 		skip_subtitles = ""
 	end
-	local frame_multiplier = 1
-	if string.find(content, "Telecined") or string.find(content, "Mixed") then
-		frame_multiplier = 0.8
-		fps_number = fps_number * frame_multiplier
-	end
-	if string.find(content, "Interlaced") then
-		frame_multiplier = 2
-		fps_number = fps_number * frame_multiplier
-	end
+
 	if not video_codec then
 		video_codec = "av1"
 	end --checks if user set the video argument
@@ -145,30 +187,11 @@ local function getvideo(
 		)
 		return string
 	end
-	local function txt_decode(txt_file)
-		local txt_table = {}
-		local previous_time = 0
-		for line in io.lines(txt_file) do
-			local time = line:match("pts:(%d+)")
-			local scene = line:match("frame:(%d+)")
-			if time and scene then
-				time = math.floor((tonumber(time) / frame_multiplier) + 0.5)
-				table.insert(txt_table, { tonumber(previous_time), tonumber(time), tonumber(scene) + 1 })
-				previous_time = time
-			end
-		end
-
-		local time = (total_frames or previous_time) + 1
-		if previous_time == 0 then
-			table.insert(txt_table, { tonumber(previous_time), tonumber(time), 1 })
-		else
-			table.insert(txt_table, { tonumber(previous_time), tonumber(time), txt_table[#txt_table][3] + 1 })
-		end
-		pl.file.delete(txt_file)
-		return txt_table
-	end
 
 	local function get_scenes()
+		if resume and path.isfile(txt) then
+			return scenes
+		end
 		local vmaf_split_command
 		pl.file.delete(txt) --delete leftovers from a possibly failed encode
 		if parallel then
@@ -188,12 +211,19 @@ local function getvideo(
 		end
 		print("Using ffmpeg to detect scenes so we can test quality on multiple scenes!")
 		print(vmaf_split_command)
-		utils.execute(vmaf_split_command)
-		local scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
+		local count = 1
+		local success
+		while (not success) and count < 5 do
+			count = count + 1
+			success = utils.execute(vmaf_split_command)
+		end
+		if not scenes then
+			scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
+		end
 		if not scenes then
 			--if the scenes file doesn't exist then error
 			print("Unable to read the scene txt file")
-			utils.quit()
+			return "error"
 		end
 		scenes = txt_decode(txt)
 		if not scenes then
@@ -205,8 +235,8 @@ local function getvideo(
 	local function parallel_final(results)
 		local function alphanumsort(o)
 			table.sort(o, function(a, b)
-				local number_a = tonumber(tostring(a):match("_(%d+)%.mkv$"))
-				local number_b = tonumber(tostring(b):match("_(%d+)%.mkv$"))
+				local number_a = scene_match(a)
+				local number_b = scene_match(b)
 				if number_a and number_b then
 					return number_a < number_b
 				end
@@ -217,7 +247,6 @@ local function getvideo(
 		if #results > 1 then
 			results = alphanumsort(results)
 		end
-		pl.file.delete(cat_txt)
 		for i, v in ipairs(results) do
 			local file = utils.readfile(cat_txt) or ""
 			local success = pl.utils.writefile(
@@ -236,8 +265,12 @@ file '%s']],
 		end
 		local command = remux(input)
 		print(command)
-		utils.execute(command)
-		pl.file.delete(cat_txt)
+		local count = 1
+		local success
+		while (not success) and count < 5 do
+			count = count + 1
+			success = utils.executeex(command)
+		end
 		for i, v in ipairs(results) do
 			pl.file.delete(v)
 		end
@@ -264,7 +297,7 @@ file '%s']],
 			local results = {}
 			if parallel then
 				local current_worker = 0
-				local scenes = get_scenes()
+				scenes = get_scenes()
 				scenes = split_table(scenes, workers)
 				for i, v in ipairs(scenes) do
 					current_worker = current_worker + 1
@@ -286,7 +319,9 @@ file '%s']],
 							false,
 							get_vmaf,
 							fps_number,
-							total_frames
+							total_frames,
+							temp_folder,
+							resume
 						)
 					)
 				end
@@ -301,7 +336,7 @@ file '%s']],
 
 				return parallel_final(results)
 			else
-				local scenes = get_scenes()
+				scenes = get_scenes()
 				local divisor
 				local scene_frames = {}
 				local count = 0
@@ -344,7 +379,9 @@ file '%s']],
 							false,
 							get_vmaf,
 							fps_number,
-							total_frames
+							total_frames,
+							temp_folder,
+							resume
 						)
 					)
 				end
@@ -372,7 +409,7 @@ file '%s']],
 			local results = {}
 			if parallel then
 				local current_worker = 0
-				local scenes = get_scenes()
+				scenes = get_scenes()
 				scenes = split_table(scenes, workers)
 				for i, v in ipairs(scenes) do
 					current_worker = current_worker + 1
@@ -394,7 +431,9 @@ file '%s']],
 							video_quality,
 							get_vmaf,
 							fps_number,
-							total_frames
+							total_frames,
+							temp_folder,
+							resume
 						)
 					)
 				end

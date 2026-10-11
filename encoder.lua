@@ -30,14 +30,18 @@ local audio = args.audio
 local codec = args.video
 local join = path.join
 local mass = args.mass
-local mkv = args.mkv
-local output_format = ".webm"
+local webm = args.webm
+local output_format = ".mkv"
 local output_placeholder = "av1_out"
 local utils = pl.utils
+--mutable variables
+local resume
+
+local output_folder
 --redefine variables if necessary
 extentions = extentions.exensions
-if codec == "ffv1" or audio == "flac" or mkv then
-	output_format = ".mkv" --if the user sets video codec to ffv1 or audio to flac then change output to mkv, also if the mkv flag is used obviously
+if (codec ~= "ffv1") and (audio ~= "flac") and webm then
+	output_format = ".webm" --if user wants webm output, we make sure that the video file can actually work, webm doesnt support ffv1 or flac
 end
 if not video then
 	print("you have to supply an input") --let user know they have to supply info to the script
@@ -45,7 +49,6 @@ if not video then
 end
 if mass or path.isdir(video) then
 	--define statements variables
-	local output_folder
 	--execute
 	if output_file then
 		output_folder = abspath(output_file)
@@ -118,14 +121,23 @@ for key, file in pairs(input) do --repeats these functions for all input files
 		print(string.format("Not a valid input file: %s, skipping.", file))
 	elseif ffprobe.video.streams[1] then --if there is a video stream then run the next commands
 		print(string.format("Encoding: %s", file))
+
 		local audio_command, output = get_audio(file, output[key], no_flac_extensions, ffprobe, args, pl)
-		--gets the audio command and also redefines our output file because webm, the default container doesn't support webm so, it corrects itself
 		if not path.isfile(output) then --check if output file exists again
+			--gets the audio command and also redefines our output file because webm, the default container doesn't support webm so, it corrects itself
+			local temp_folder = join(path.dirname(output), string.format(".%s_temp", path.basename(file)))
 			local gpu = get_gpu(args, pl) --detect the gpu that the user has
 			local content = get_fields(file, args) --detect the content type of video, like progressive or interlaced
 			local fps_table = get_fps(ffprobe) --returns source videos fps
 			local filters = get_filters(file, content, fps_table, args, pl) --gets filters based off content type
 			local aspect = get_size(file, ffprobe) --gets the aspect ratio for the video
+			if path.isdir(temp_folder) then
+				print("temporary folder detected, resuming existing encode")
+				resume = true
+			else
+				path.mkdir(temp_folder)
+				resume = false
+			end
 			local video_command = get_video(
 				lanes,
 				args,
@@ -144,11 +156,18 @@ for key, file in pairs(input) do --repeats these functions for all input files
 				gpu,
 				no_subtitle_extensions,
 				output,
-				pl
+				pl,
+				temp_folder,
+				resume
 			) -- gets the encoder command
 			if (video_command ~= "skip") and (video_command ~= "parallel") then
 				print("Executing: " .. video_command) --prints command
 				utils.execute(video_command) --executes command
+			end
+			if path.isfile(output) then
+				path.rmdir(temp_folder)
+			else
+				print("output file doesnt exist, keeping temp folder for resume")
 			end
 		else
 			--provides user input that once again the output file exists
@@ -156,7 +175,7 @@ for key, file in pairs(input) do --repeats these functions for all input files
 				string.format(
 					[[Output file "%s" exists, skipping!
 If this output file doesn't match what your original input was, it's because the audio is flac and flac doesn't work in webm.]],
-					output
+					output[key]
 				)
 			)
 		end
