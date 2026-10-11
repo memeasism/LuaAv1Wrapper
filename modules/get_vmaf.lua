@@ -44,7 +44,10 @@ local function get_vmaf(
 	local scene_frames = {}
 	local vmaf_values = {}
 	local count = 0
-	local low, high = 2, (42 or previous_cq)
+	local low, high = 2, 42
+	if previous_cq then
+		high = previous_cq * 2
+	end
 	local cq = 42
 	local old_cq = 42
 	local divisor
@@ -81,6 +84,9 @@ local function get_vmaf(
 		for key, target_vmaf in pairs(vmaf) do
 			if not vmaf_values[1] then --checks if the vmaf_values table exists, this table is so we can encode less saving the user time and money!
 				for _ = 1, 6 do
+					if low > high then
+						break
+					end
 					cq = math.floor((low + high) / 2)
 					pl.file.delete(temporary) --delete old temp file
 					local command = video_command(cq, args, true)
@@ -100,13 +106,18 @@ local function get_vmaf(
 						end
 						if current_vmaf >= target_vmaf then
 							old_cq = cq
-							high = cq - 1
-						else
 							low = cq + 1
+							if _ >= 4 then
+								break --to speed things up
+							end
+						else
+							high = cq - 1
 						end
 					end
 				end
-				video_quality = old_cq
+				if current_vmaf >= target_vmaf then
+					video_quality = old_cq
+				end
 			end
 			for key, vmaf_value in pairs(vmaf_values) do
 				if vmaf_value[1] >= target_vmaf then
