@@ -189,21 +189,25 @@ local function getvideo(
 		if resume and path.isfile(txt) then
 			return scenes
 		end
+		local fixed_txt = txt
+		if path.is_windows then
+			fixed_txt = fixed_txt:gsub("\\", "/")
+		end
 		local vmaf_split_command
 		pl.file.delete(txt) --delete leftovers from a possibly failed encode
 		if parallel then
 			vmaf_split_command = string.format(
-				[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
+				[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file='%s'" -f null -]],
 				string.format(filters.proxy.ffmpeg, 0, total_frames),
 				fps_number,
-				txt
+				fixed_txt
 			)
 		else
 			vmaf_split_command = string.format(
-				[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file=%s" -f null -]],
+				[[%s ffmpeg -i pipe: -filter:v "settb=1/%s,select='gt(scene,0.3)',metadata=print:file='%s'" -f null -]],
 				string.format(string.gsub(string.gsub(filters.proxy.ffmpeg, "-s", ""), "-e", ""), "", ""),
 				fps_number,
-				txt
+				fixed_txt
 			)
 		end
 		print("Using ffmpeg to detect scenes so we can test quality on multiple scenes!")
