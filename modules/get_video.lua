@@ -191,7 +191,7 @@ local function getvideo(
 		end
 		local fixed_txt = txt
 		if path.is_windows then
-			fixed_txt = fixed_txt:gsub("\\", "/")
+			fixed_txt = fixed_txt:gsub("\\", "/"):gsub(":", "\\:")
 		end
 		local vmaf_split_command
 		pl.file.delete(txt) --delete leftovers from a possibly failed encode
