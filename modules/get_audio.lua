@@ -3,6 +3,7 @@ local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
 		"flac",
 		"dts",
 		"opus",
+		"truehd",
 	} --obviously pass flac and opus, but also, dts has been giving me issues, so we pass instead
 	local problemcodecs = {
 		"dts",
@@ -10,7 +11,6 @@ local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
 	local losslesscodecs = {
 		"pcm",
 		"alac",
-		"truehd",
 	} --list of lossless codecs the source can be
 	local lossycodecs = {
 		"ac3",
