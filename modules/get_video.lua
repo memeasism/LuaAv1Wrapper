@@ -72,39 +72,42 @@ local function getvideo(
 		end
 		return txt_table
 	end
-	if not path.isfile(txt) then
-		path.mkdir(temp_folder)
-		if parallel and not video_quality and not skip_vmaf then
-			if nb_frames then
-				total_frames = tonumber(nb_frames) - 1
-			else
-				print("Could not get frame count from ffprobe, counting frames!")
-				total_frames = count_frames(input, pl)
-				if total_frames then
-					total_frames = total_frames - 1
+	local function get_frames(skip_to_count)
+		if not path.isfile(txt) then
+			path.mkdir(temp_folder)
+			if parallel and not video_quality and not skip_vmaf then
+				if nb_frames and skip_to_count == false then
+					total_frames = tonumber(nb_frames) - 1
 				else
-					print("Counting frames failed, time to guess!")
-					total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
+					print("Could not get frame count from ffprobe, counting frames!")
+					total_frames = count_frames(input, pl)
+					if total_frames then
+						total_frames = total_frames - 1
+					else
+						print("Counting frames failed, time to guess!")
+						total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
+					end
 				end
-			end
-			if (not total_frames) or (total_frames == "error") then
-				print("Error getting file duration, skipping!")
-				return "skip"
+				if (not total_frames) or (total_frames == "error") then
+					print("Error getting file duration, skipping!")
+					return "skip"
+				end
+			else
+				workers = 1
 			end
 		else
-			workers = 1
+			scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
+			if scenes then
+				scenes = txt_decode(txt)
+			end
+			if not scenes then
+				print("Unable to decode the scenes txt file")
+				return "skip"
+			end
+			total_frames = scenes[#scenes][2] - 1
 		end
-	else
-		scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
-		if scenes then
-			scenes = txt_decode(txt)
-		end
-		if not scenes then
-			print("Unable to decode the scenes txt file")
-			return "skip"
-		end
-		total_frames = scenes[#scenes][2] - 1
 	end
+	get_frames(false)
 
 	local skip_subtitles
 	local video_command
@@ -186,6 +189,7 @@ local function getvideo(
 	end
 
 	local function get_scenes()
+		::reset::
 		if resume and path.isfile(txt) then
 			return scenes
 		end
@@ -217,6 +221,10 @@ local function getvideo(
 		while (not success) and count < 5 do
 			count = count + 1
 			success = utils.execute(vmaf_split_command)
+		end
+		if not success then
+			get_frames(true)
+			goto reset
 		end
 		if not scenes then
 			scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
@@ -272,8 +280,10 @@ file '%s']],
 			count = count + 1
 			success = utils.executeex(command)
 		end
-		for i, v in ipairs(results) do
-			pl.file.delete(v)
+		if not args.keep then
+			for i, v in ipairs(results) do
+				pl.file.delete(v)
+			end
 		end
 		return "parallel"
 	end

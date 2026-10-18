@@ -86,7 +86,6 @@ local function parallel_encoding(
 					video_command(previous_cq, args, noise),
 					intermediary_output
 				)
-				table.insert(output_table, final_output)
 				print(string.format("Running Command: %s", final_command))
 				local count = 1
 				local success
@@ -98,8 +97,10 @@ local function parallel_encoding(
 					end
 				end
 				if not success then
-					print(string.format("Failed to encode scene %s", v[3]))
+					print(string.format("Failed to encode scene %s, quitting!", v[3]))
+					pl.utils.quit()
 				else
+					table.insert(output_table, final_output)
 					pl.file.move(intermediary_output, final_output)
 				end
 			end

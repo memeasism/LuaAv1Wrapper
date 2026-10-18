@@ -23,6 +23,8 @@ local function get_vmaf(
 			vmaf_model = "vmaf_4k_v0.6.1"
 		end
 	end
+	local target_vmaf = args.vmaf or 98
+	local fallback_vmaf = args.fallbackvmaf or 80
 	local vmaf
 	local function vmaf_range(start, stop)
 		local result = {}
@@ -32,8 +34,8 @@ local function get_vmaf(
 		return result
 	end
 	vmaf = vmaf_range(
-		args.vmaf or 98, --[[(Start)From my testing the optimal "visually lossless" VMAF score]]
-		args.fallbackvmaf or 80 --[[(Stop) just picked a low vmaf number]]
+		target_vmaf, --[[(Start)From my testing the optimal "visually lossless" VMAF score]]
+		fallback_vmaf --[[(Stop) just picked a low vmaf number]]
 	)
 	--set static variables
 	local utils = pl.utils
@@ -42,11 +44,15 @@ local function get_vmaf(
 	local current_vmaf = 0
 	local current_command
 	local scene_frames = {}
-	local vmaf_values = {}
 	local count = 0
-	local max_cq = 36
+	local limit = 51
+	local old_cq = limit
+	local ceiling = old_cq
+	local floor = 2
+	if previous_cq then
+		old_cq = math.min(((previous_cq + 6) - (floor / 2)), (limit - (floor / 2))) * 2
+	end
 	local cq = 36
-	local old_cq = previous_cq or 36
 	local divisor
 	local temporary = string.format("%s_%s_temp.mkv", output, scene)
 	local reference = string.format("%s_%s_ref.mkv", temporary, scene)
@@ -54,9 +60,9 @@ local function get_vmaf(
 	scene_frames = { { start_frame, end_frame } }
 	divisor = 1
 	for key, value in pairs(scene_frames) do
+		local vmaf_values = {}
 		pl.file.delete(reference) --delete previous reference/reference reference from failed encode
 		cq = old_cq + 8 --set cq back to 50 or a safe starting point for a new scene
-		local scene_success
 		local start_time = value[1]
 		local stop_time = value[2] - 1
 		local vmaf_command = string.format(
@@ -78,54 +84,69 @@ local function get_vmaf(
 			reference_success = utils.executeex(reference_command)
 			count = count + 1
 		end
-		for key, target_vmaf in pairs(vmaf) do
-			if not vmaf_values[1] then --checks if the vmaf_values table exists, this table is so we can encode less saving the user time and money!
-				while current_vmaf < target_vmaf and cq > 2 do
-					cq = cq - 2
-					pl.file.delete(temporary) --delete old temp file
-					local command = video_command(cq, args, 0)
-					local temporary_command =
-						string.format([[ffmpeg -i "%s" -map 0:v:0 %s "%s"]], reference, command, temporary)
-					local command_success = utils.executeex(temporary_command)
-					if not command_success then
-						print("encoding to av1 failed!")
-					end
-					local success, returncode, command_out, errout = utils.executeex(vmaf_command) --not sure why but ffmpeg puts this stuff in the err out at least on windows
-					if success then
-						local vmaf_string = string.match(errout, "VMAF score:%s*([%d.]+)")
-						local vmaf_score = tonumber(vmaf_string)
-						if vmaf_score then
-							current_vmaf = vmaf_score
-							table.insert(vmaf_values, { vmaf_score, cq })
+		while ceiling >= floor do
+			cq = math.floor((floor + ceiling) / 2)
+			pl.file.delete(temporary) --delete old temp file
+			local command = video_command(cq, args, 0)
+			local temporary_command =
+				string.format([[ffmpeg -i "%s" -map 0:v:0 %s "%s"]], reference, command, temporary)
+			local command_success
+			local success, returncode, command_out, errout
+			count = 0
+			while not command_success and count < 5 do
+				count = count + 1
+				command_success = utils.executeex(temporary_command)
+			end
+			count = 0
+			if command_success then
+				while not success and count < 5 do
+					success, returncode, command_out, errout = utils.executeex(vmaf_command) --not sure why but ffmpeg puts this stuff in the err out at least on windows
+				end
+			end
+			if success then
+				local vmaf_string = string.match(errout, "VMAF score:%s*([%d.]+)")
+				local vmaf_score = tonumber(vmaf_string)
+
+				if vmaf_score then
+					current_vmaf = vmaf_score
+					table.insert(vmaf_values, { vmaf_score, cq })
+					if current_vmaf >= target_vmaf then
+						local difference = current_vmaf - target_vmaf
+						video_quality = cq
+						if difference <= 1 then
+							break
 						end
+						floor = cq + 1
+					else
+						ceiling = cq - 1
 					end
+					if ceiling > limit then
+						ceiling = limit
+					end
+				else
+					print("Failed to parse a VMAF Score! Quitting!")
+					pl.utils.quit()
 				end
-			end
-			for key, vmaf_value in pairs(vmaf_values) do
-				if vmaf_value[1] >= target_vmaf then
-					--this is such simple code that saves so much time and money, idk why but I just felt this should be pointed out, maybe because some people might not think of it
-					current_vmaf = vmaf_value[1]
-					cq = vmaf_value[2]
-					break
-				end
-			end
-			if current_vmaf >= target_vmaf then
-				scene_success = true
-				video_quality = cq
-				cq = cq + 8 --add 6 but also 2 more due to how the loop works, this way we waste less time narrowing the vmaf in theory
-				if cq > max_cq then
-					cq = max_cq
-				end
-				old_cq = cq
-				current_vmaf = 0
-				--if vmaf is set successfully then break the loop and set current vmaf to a better starting position to reach the vmaf faster
-				break
 			else
-				cq = old_cq
+				print("VMAF failed to run! Quitting!")
+				pl.utils.quit()
 			end
 		end
-		if not scene_success then --checks if a scene failed to encode and breaks
-			break
+		if not video_quality then
+			for vmaf_key = #vmaf_values, 1, -1 do
+				if video_quality then
+					break
+				end
+				local vmaf_value = vmaf_values[vmaf_key]
+				for key, current_target_vmaf in ipairs(vmaf) do
+					if vmaf_value[1] >= current_target_vmaf then
+						--this is such simple code that saves so much time and money, idk why but I just felt this should be pointed out, maybe because some people might not think of it
+						current_vmaf = vmaf_value[1]
+						video_quality = vmaf_value[2]
+						break
+					end
+				end
+			end
 		end
 	end
 	--delete temp files

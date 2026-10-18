@@ -165,9 +165,15 @@ for key, file in pairs(input) do --repeats these functions for all input files
 				utils.execute(video_command) --executes command
 			end
 			if path.isfile(output) then
-				path.rmdir(temp_folder)
+				if not args.keep then
+					path.rmdir(temp_folder)
+				end
 			else
-				print("output file doesnt exist, keeping temp folder for resume")
+				if not args.keep then
+					print("output file doesnt exist, keeping temp folder for resume")
+				else
+					print("Keeping temp folder due to flags")
+				end
 			end
 		else
 			--provides user input that once again the output file exists

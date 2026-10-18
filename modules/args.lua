@@ -32,6 +32,7 @@ local function getargs(pl)
 	-s,--skipvmaf		Your video will be encoded using the stored quality values instead of dynamically finding the best quality for your content type
 	--webm		Your outputs will be webm files, FOR BATCH PROCESSING!
 	-m,--mass		Lets the script know that your input is a folder
+	-k,--keep	Keep the temporary folder when parallel encoding, useful for if an encode fails, but the script keeps going.
 	<output> (optional string) The output file or directory
 	]])
 	return args
