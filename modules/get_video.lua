@@ -127,23 +127,37 @@ local function getvideo(
 		end
 		return result
 	end
-	local function progress_bar(total, threads, linda)
+	local function progress_bar(total, threads, linda, skip_speed)
 		local completed = 0
 		local finished = false
+		local start_time = os.time()
 		while not finished do
 			local key, val = linda:receive(0.1, "scene")
 			if key == "scene" and val then
 				completed = completed + 1
+				local current_time = os.time()
+				local elapsed = current_time - start_time
+				local speed_string = ""
+				if elapsed > 0 and not skip_speed then
+					local frames_done = total_frames * (completed / total)
+					local fps = math.floor(frames_done / elapsed)
+					local time_per_scene = elapsed / completed
+					local eta = math.floor(time_per_scene * total)
+					local eta_hours = math.floor(eta / 3600)
+					local eta_minutees = math.floor((eta % 3600) / 60)
+					local eta_seconds = eta % 60
+					speed_string = string.format("FPS: %s ETA: %s:%s:%s")
+				end
 				local percent = math.floor((completed / total) * 100)
 				local filled = math.floor(percent / 2)
 				local bar = string.rep("=", filled) .. string.rep(" ", 50 - filled)
-				io.write(string.format("\r[%s] %d%% (%d/%d)", bar, percent, completed, total))
+				io.write(string.format("\r[%s] %s %d%% (%d/%d)", bar, speed_string, percent, completed, total))
 				io.flush()
 			end
 
 			finished = true
 			for _, result in ipairs(threads) do
-				if result ~= "done" and result ~= "error" then
+				if not result[1] and result ~= "error" then
 					finished = false
 					break
 				end
@@ -296,9 +310,9 @@ local function getvideo(
 			end
 		end
 		local command = remux(input)
-		print(command)
+		print(string.format("Executing: %s", command))
 		for i = 1, 5 do
-			local success = utils.executeex(command)
+			local success = utils.execute(command)
 			if success then
 				break
 			end
@@ -370,7 +384,7 @@ local function getvideo(
 					)
 				end
 				print("Progress for parallel encoding:")
-				progress_bar(total, threads, linda)
+				progress_bar(total, threads, linda, false)
 				for i, result in ipairs(threads) do
 					if result == "error" then
 						return "error"
@@ -437,7 +451,7 @@ local function getvideo(
 					)
 				end
 				print("Progress for vmaf testing:")
-				progress_bar(total, threads, linda)
+				progress_bar(total, threads, linda, true)
 				for i, v in ipairs(threads) do
 					local result = v
 					if result == "error" then

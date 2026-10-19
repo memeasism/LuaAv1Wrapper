@@ -1,4 +1,3 @@
-io.stdout:setvbuf("no") --disable output buffer
 --define all modules
 local pl = require("pl.import_into")()
 local args = require("modules/args")(pl) --gets arguments
@@ -164,8 +163,12 @@ for key, file in pairs(input) do --repeats these functions for all input files
 				) -- gets the encoder command
 				if (video_command ~= "skip") and (video_command ~= "parallel") and (video_command ~= "error") then
 					print("Executing: " .. video_command) --prints command
-					utils.execute(video_command) --executes command
-					print()
+					for i = 1, 5 do
+						local success = utils.execute(video_command) --executes command
+						if success then
+							break
+						end
+					end
 					if path.isfile(output) then
 						if not args.keep then
 							path.rmdir(temp_folder)
