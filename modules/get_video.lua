@@ -150,14 +150,14 @@ local function getvideo(
 					frames = frames - scene_frames
 				end
 				if elapsed > 0 then
-					local fps = math.floor(completed_frames / elapsed)
+					local fps = completed_frames / elapsed
 					local time_per_scene = elapsed / completed
 					local eta = math.floor(time_per_scene * (total - completed))
 					local eta_hours = math.floor(eta / 3600)
 					local eta_minutes = math.floor((eta % 3600) / 60)
 					local eta_seconds = eta % 60
 					speed_string =
-						string.format("FPS: %s ETA: %02d:%02d:%02d", fps, eta_hours, eta_minutes, eta_seconds)
+						string.format("FPS: %.2f ETA: %02d:%02d:%02d", fps, eta_hours, eta_minutes, eta_seconds)
 				end
 				local percent = math.floor((completed / total) * 100)
 				local filled = math.floor(percent / 2)
