@@ -6,6 +6,7 @@ local lanes = require("lanes").configure()
 local count_frames = require("modules/count_frames")
 local extentions = require("modules/extentions")
 local get_audio = require("modules/get_audio")
+local get_colors = require("modules/get_colors")
 local get_ffprobe = require("modules/ffprobe")
 local get_fields = require("modules/get_fields")
 local get_filters = require("modules/get_filters")
@@ -159,7 +160,8 @@ for key, file in pairs(input) do --repeats these functions for all input files
 					output,
 					pl,
 					temp_folder,
-					resume
+					resume,
+					get_colors
 				) -- gets the encoder command
 				if (video_command ~= "skip") and (video_command ~= "parallel") and (video_command ~= "error") then
 					print("Executing: " .. video_command) --prints command

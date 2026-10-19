@@ -17,6 +17,8 @@ local function ffprobe(input, pl, cjson)
 		if video_success and audio_success then
 			local video_probe = cjson.decode(video_json)
 			local audio_probe = cjson.decode(audio_json)
+			pl.pretty(video_probe)
+			pl.utils.quit()
 			if not (video_probe and audio_probe) then
 				print("Failed to read ffprobe output")
 				return "error"

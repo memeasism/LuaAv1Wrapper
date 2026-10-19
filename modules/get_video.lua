@@ -18,7 +18,8 @@ local function getvideo(
 	output,
 	pl,
 	temp_folder,
-	resume
+	resume,
+	get_colors
 )
 	--define static variables
 	local test_scene_count = 8
@@ -29,7 +30,10 @@ local function getvideo(
 	local skip_vmaf = args.skipvmaf
 	local utils = pl.utils
 	local video_codec = args.video
+
 	--define variables that are mutable
+
+	local colors = get_colors(ffprobe)
 	local fps_number = tonumber(fps_table.fpsdividendtxt) / tonumber(fps_table.fpsdivisortxt)
 	local total_frames
 	local nb_frames = ffprobe.video.streams[1].nb_frames
@@ -40,6 +44,9 @@ local function getvideo(
 	local video_quality = args.videoquality
 	local parallel = workers > 1
 	local frame_multiplier = 1
+	if colors == "error" then
+		colors = ""
+	end
 	if string.find(content, "Telecined") or string.find(content, "Mixed") then
 		frame_multiplier = 0.8
 		fps_number = fps_number * frame_multiplier
@@ -194,7 +201,7 @@ local function getvideo(
 	--define the command functions
 	local function base(vspipe, file, pre_roll)
 		local command = string.format(
-			[[%s ffmpeg -i "%s" -f yuv4mpegpipe -i pipe: -filter_complex "[1:v:0]trim=start_frame=%s,setpts=PTS-STARTPTS,setdar=%s[out]" -map "[out]" -map 0:a? -map 0:s? -c:s copy %s -async 0]],
+			[[%s ffmpeg -i "%s" -f yuv4mpegpipe -i pipe: -filter_complex "[1:v:0]trim=start_frame=%s,setpts=PTS-STARTPTS,setdar=%s[out]" -map "[out]" -map 0:a? -map 0:s? -c:s copy %s -async 0 %s]],
 			vspipe,
 			file,
 			pre_roll,
@@ -315,7 +322,7 @@ local function getvideo(
 				if success then
 					break
 				end
-				if count == 100 then
+				if i == 100 then
 					print("Failed to write the cat file for ffmpeg, skipping.")
 					return "error"
 				end
@@ -423,7 +430,7 @@ local function getvideo(
 						if not scene_frames[random] then
 							table.insert(scene_frames, scenes[random])
 							count = count + 1
-							scenes_total_frames = scenes_total_frame + (scenes[random][2] - scenes[random][3])
+							scenes_total_frames = scenes_total_frames + (scenes[random][1] - scenes[random][2])
 						end
 					end
 				else --both of these if statements just add random scenes to a table, 4 by default but in rare instances if there are less than 4 it just does them all
@@ -433,7 +440,7 @@ local function getvideo(
 						if not scene_frames[random] then
 							scene_frames[random] = scenes[random]
 							count = count + 1
-							scenes_total_frames = scenes_total_frame + scenes[random][2] - scenes[random][3]
+							scenes_total_frames = scenes_total_frames + scenes[random][1] - scenes[random][2]
 						end
 					end
 				end
