@@ -127,26 +127,37 @@ local function getvideo(
 		end
 		return result
 	end
-	local function progress_bar(total, threads, linda, skip_speed)
+	local function progress_bar(total, threads, linda, frames)
 		local completed = 0
 		local finished = false
 		local start_time = os.time()
+		local completed_frames = 0
 		while not finished do
 			local key, val = linda:receive(0.1, "scene")
 			if key == "scene" and val then
 				completed = completed + 1
+				local skip = val[1]
+				local start_frame = val[2]
+				local stop_frame = val[3]
+				local scene = val[4]
+				local scene_frames = stop_frame - start_frame
 				local current_time = os.time()
 				local elapsed = current_time - start_time
 				local speed_string = ""
-				if elapsed > 0 and not skip_speed then
-					local frames_done = total_frames * (completed / total)
-					local fps = math.floor(frames_done / elapsed)
+				if not skip then
+					completed_frames = completed_frames + scene_frames
+				else
+					frames = frames - scene_frames
+				end
+				if elapsed > 0 then
+					local fps = math.floor(completed_frames / elapsed)
 					local time_per_scene = elapsed / completed
-					local eta = math.floor(time_per_scene * total)
+					local eta = math.floor(time_per_scene * (total - completed))
 					local eta_hours = math.floor(eta / 3600)
-					local eta_minutees = math.floor((eta % 3600) / 60)
+					local eta_minutes = math.floor((eta % 3600) / 60)
 					local eta_seconds = eta % 60
-					speed_string = string.format("FPS: %s ETA: %s:%s:%s", fps, eta_hours, eta_minutes, eta_seconds)
+					speed_string =
+						string.format("FPS: %s ETA: %02d:%02d:%02d", fps, eta_hours, eta_minutes, eta_seconds)
 				end
 				local percent = math.floor((completed / total) * 100)
 				local filled = math.floor(percent / 2)
@@ -353,7 +364,7 @@ local function getvideo(
 			if parallel then
 				local current_worker = 0
 				scenes = get_scenes()
-				local total = scenes[#scenes][3]
+				local total = #scenes
 				scenes = split_table(scenes, workers)
 				for i, v in ipairs(scenes) do
 					current_worker = current_worker + 1
@@ -384,7 +395,7 @@ local function getvideo(
 					)
 				end
 				print("Progress for parallel encoding:")
-				progress_bar(total, threads, linda, false)
+				progress_bar(total, threads, linda, total_frames)
 				for i, result in ipairs(threads) do
 					if result == "error" then
 						return "error"
@@ -403,6 +414,7 @@ local function getvideo(
 				local divisor
 				local scene_frames = {}
 				local count = 0
+				local scenes_total_frames = 0
 				if #scenes >= test_scene_count then
 					divisor = test_scene_count
 					while count < test_scene_count do
@@ -410,6 +422,7 @@ local function getvideo(
 						if not scene_frames[random] then
 							table.insert(scene_frames, scenes[random])
 							count = count + 1
+							scenes_total_frames = scenes_total_frame + (scenes[random][2] - scenes[random][3])
 						end
 					end
 				else --both of these if statements just add random scenes to a table, 4 by default but in rare instances if there are less than 4 it just does them all
@@ -419,6 +432,7 @@ local function getvideo(
 						if not scene_frames[random] then
 							scene_frames[random] = scenes[random]
 							count = count + 1
+							scenes_total_frames = scenes_total_frame + scenes[random][2] - scenes[random][3]
 						end
 					end
 				end
@@ -452,7 +466,7 @@ local function getvideo(
 					)
 				end
 				print("Progress for vmaf testing:")
-				progress_bar(total, threads, linda, true)
+				progress_bar(total, threads, linda, scenes_total_frames)
 				for i, v in ipairs(threads) do
 					local result = v
 					if result == "error" then
@@ -481,7 +495,7 @@ local function getvideo(
 			if parallel then
 				local current_worker = 0
 				scenes = get_scenes()
-				local total = scenes[#scenes][3]
+				local total = #scenes
 				scenes = split_table(scenes, workers)
 				for i, v in ipairs(scenes) do
 					current_worker = current_worker + 1
@@ -511,7 +525,7 @@ local function getvideo(
 						)
 					)
 				end
-				progress_bar(total, threads, linda, false)
+				progress_bar(total, threads, linda, total_frames)
 				for i, v in ipairs(threads) do
 					local result = v
 					if result == "error" then

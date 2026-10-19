@@ -34,7 +34,7 @@ local function parallel_encoding(
 		if pl.path.isfile(final_output) and parallel then
 			table.insert(output_table, final_output)
 			if linda then
-				linda:send("scene", v[3])
+				linda:send("scene", { true, v[1], v[2], v[3] })
 			end
 		else
 			local vmaf_previous_time = v[1]
@@ -86,7 +86,7 @@ local function parallel_encoding(
 			if not parallel then
 				table.insert(output_table, previous_cq)
 				if linda then
-					linda:send("scene", v[3])
+					linda:send("scene", { false, v[1], v[2], v[3] })
 				end
 			else
 				local intermediary_output = string.format("%s_%s.%s.%s.%s", output, v[3], "mkv", "int", "mkv")
@@ -102,7 +102,7 @@ local function parallel_encoding(
 						table.insert(output_table, final_output)
 						pl.file.move(intermediary_output, final_output)
 						if linda then
-							linda:send("scene", v[3])
+							linda:send("scene", { false, v[1], v[2], v[3] })
 						end
 						break
 					end
