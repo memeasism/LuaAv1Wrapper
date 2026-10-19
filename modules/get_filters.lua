@@ -1,17 +1,28 @@
 local function getfilters(input, content, fps, args, pl)
+	local utils = pl.utils
+	local path = pl.path
+	local join = path.join
+	local dirname = path.dirname
+	local tablex = pl.tablex
 	local filter
 	local proxy
 	local deinterlace_BFF
 	local ivtc_BFF
+	local redirect
+	if path.is_windows then
+		redirect = "2>nul"
+	else
+		redirect = "2>/dev/null"
+	end
 	local function formatffmpeg(str)
 		local formatted
-		local key, value = pl.utils.splitv(str, "=", false)
+		local key, value = utils.splitv(str, "=", false)
 		if not (key and value) then
 			print("Failed to format filters to ffmpeg")
 			return "error"
 		end
-		if pl.utils.readfile(value) then
-			formatted = "-a " .. key .. "=" .. pl.utils.quote_arg(value)
+		if utils.readfile(value) then
+			formatted = "-a " .. key .. "=" .. utils.quote_arg(value)
 			return formatted
 		end
 		formatted = "-a " .. key .. "=" .. value
@@ -19,7 +30,7 @@ local function getfilters(input, content, fps, args, pl)
 	end
 	local function formatav1an(str)
 		local formatted
-		formatted = pl.utils.quote_arg(str)
+		formatted = utils.quote_arg(str)
 		if not formatted then
 			print("Failed to format filters to av1an")
 		end
@@ -77,11 +88,11 @@ local function getfilters(input, content, fps, args, pl)
 	end
 
 	local vsscripts = {
-		passthrough = pl.utils.quote_arg(string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/passthrough.vpy"),
-		ivtc = pl.utils.quote_arg(string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/ivtc.vpy"),
-		deinterlace = pl.utils.quote_arg(string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/di.vpy"),
-		deinterlace_proxy = pl.utils.quote_arg(string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/di_proxy.vpy"),
-		mixed = pl.utils.quote_arg(string.gsub(arg[0], "encoder.lua", "") .. "/VPScripts/ivtc+di.vpy"),
+		passthrough = utils.quote_arg(join(dirname(arg[0]), "VPScripts", "passthrough.vpy")),
+		ivtc = utils.quote_arg(join(dirname(arg[0]), "VPScripts", "ivtc.vpy")),
+		deinterlace = utils.quote_arg(join(dirname(arg[0]), "VPScripts", "di.vpy")),
+		deinterlace_proxy = utils.quote_arg(join(dirname(arg[0]), "VPScripts", "di_proxy.vpy")),
+		mixed = utils.quote_arg(join(dirname(arg[0]), "VPScripts", "ivtc+di.vpy")),
 	} --vapoursynth scripts
 	local attributes = {
 		passthrough = {
@@ -123,18 +134,19 @@ local function getfilters(input, content, fps, args, pl)
 		ffmpeg = "vspipe " .. pl.path.normpath(vsscripts[filter]) .. " -c y4m " .. table.concat(
 			pl.tablex.map(formatffmpeg, attributes[filter]),
 			" "
-		) .. " -s %s -e %s - | ",
-		av1an = pl.utils.quote_arg(pl.path.normpath(vsscripts[filter]))
+		) .. " -s %s -e %s - " .. redirect .. " | ",
+		--[[av1an = utils.quote_arg(path.normpath(vsscripts[filter]))
 			.. " --vspipe-args "
-			.. table.concat(pl.tablex.map(formatav1an, attributes[filter]), " "),
+			.. table.concat(pl.tablex.map(formatav1an, attributes[filter]), " "),]]
+		--commented out but not removed incase I decide to go back to av1an, but don't want to waste resources formatting.
 		proxy = {
-			av1an = pl.utils.quote_arg(pl.path.normpath(vsscripts[proxy]))
+			--[[av1an = utils.quote_arg(path.normpath(vsscripts[proxy]))
 				.. " --vspipe-args "
-				.. table.concat(pl.tablex.map(formatav1an, attributes[proxy]), " "),
+				.. table.concat(pl.tablex.map(formatav1an, attributes[proxy]), " "),]]
 			ffmpeg = "vspipe " .. vsscripts[filter] .. " -c y4m " .. table.concat(
 				pl.tablex.map(formatffmpeg, attributes[filter]),
 				" "
-			) .. " -s %s -e %s - | ",
+			) .. " -s %s -e %s - " .. redirect .. " | ",
 		},
 	}
 

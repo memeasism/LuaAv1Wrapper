@@ -1,4 +1,4 @@
-local function getargs(pl)
+local function get_args(pl)
 	pl.lapp.add_type("file-dir-in", "stdin", function(file)
 		local is_file = pl.path.isfile(file)
 		local is_dir = pl.path.isdir(file)
@@ -37,4 +37,4 @@ local function getargs(pl)
 	]])
 	return args
 end
-return getargs
+return get_args

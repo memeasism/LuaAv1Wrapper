@@ -1,4 +1,4 @@
-local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
+local function get_audio(input, output, no_flac_extensions, ffprobe, args, pl)
 	local passcodecs = {
 		"flac",
 		"dts",
@@ -17,112 +17,92 @@ local function getaudio(input, output, no_flac_extensions, ffprobe, args, pl)
 		"aac",
 		"mpeg",
 	} --list of lossy codecs the source can be
-	local audiocmd --prepares the audiocmd
-	local audiopass --prepares if the audio is passed
-	local audiocodec = args.audio --sets codec
-	local oldcodec --prepares oldcodec
-	local audiobitrate = 0 --prepares bitrate
-	local passcmd = " -c:a copy" --the command used if audio is to be passed
-	local function opuscmd(bitrate)
+	local audio_command --prepares the audiocmd
+	local audio_pass --prepares if the audio is passed
+	local audio_codec = args.audio --sets codec
+	local pass_command = " -c:a copy" --the command used if audio is to be passed
+	local function opus_command(bitrate)
 		local command = string.format(
 			[[-c:a libopus -af aformat=channel_layouts="7.1|5.1|stereo",asetpts=PTS-STARTPTS -mapping_family 1 -b:a %s -vbr on -compression_level 7]],
 			bitrate
 		)
 		return command
 	end
-	local flaccmd =
+	local flac_command =
 		[[-c:a flac -af aformat=channel_layouts="7.1|5.1|stereo",asetpts=PTS-STARTPTS -mapping_family 1 -compression_level 7]]
 	--these set the commands for encoding
-	local audioprobe = ffprobe.audio.streams[1]
-	if args.audiobitrate then
-		audiobitrate = args.audiobitrate
-	end --sets audio to the argument value
-	if not audioprobe then
+	local audio_probe = ffprobe.audio.streams[1]
+	if not audio_probe then
 		print("Unable to find audio stream assuming there is no audio track")
-		audiopass = true
-		audiocodec = true
+		return pass_command, output
 	end
-	if not audiocodec then
-		if not audioprobe.codec_name then
-			print("Could not find audio codec name")
-			return "error"
-		end
-		for k, v in pairs(passcodecs) do
-			if string.find(audioprobe.codec_name, v) then
-				audiopass = true
-				audiocodec = "pass"
-				for l, w in pairs(problemcodecs) do
-					if string.find(audioprobe.codec_name, w) then
-						passcmd = passcmd .. " -copytb 0 -max_interleave_delta 0"
-					end
+	local codec_name = audio_probe.codec_name
+	if not codec_name then
+		print("Could not find audio codec name")
+		return "error"
+	end
+	local audio_bitrate = args.audiobitrate or 384000
+	if audio_probe.bit_rate then
+		audio_bitrate = tonumber(audio_probe.bit_rate) / 2
+	end
+	if not audio_bitrate then
+		print("Could not find audio bitrate")
+		return "error"
+	end
+	for k, v in pairs(passcodecs) do
+		if string.find(codec_name, v) then
+			audio_pass = true
+			audio_codec = "pass"
+			for l, w in pairs(problemcodecs) do
+				if string.find(codec_name, w) then
+					pass_command = string.format("%s -copytb 0 -max_interleave_delta 0", pass_command)
 				end
+			end
+			break
+		end
+	end
+	if not audio_codec then
+		for k, v in pairs(losslesscodecs) do
+			if string.find(codec_name, v) then
+				audio_codec = "flac"
 				break
 			end
 		end
+	end
+	if not audio_codec then
+		for k, v in pairs(lossycodecs) do
+			if string.find(codec_name, v) then
+				audio_codec = "opus"
+				audio_command = opus_command(audio_bitrate)
+				break
+			end
+		end
+	end
+	if not audio_codec then
+		print("couldn't find a programmed codec, passing through instead.")
+		audio_pass = true
+		audio_codec = "pass"
+	end
+	--sets audio codec
 
-		if audiocodec == nil then
-			for k, v in pairs(losslesscodecs) do
-				if string.find(audioprobe.codec_name, v) then
-					audiocodec = "flac"
-					break
-				end
+	if audio_codec == "flac" then
+		local output_format = pl.path.extension(output)
+		for key, value in pairs(no_flac_extensions) do
+			if string.match(output_format, value) then
+				local output_no_ext = string.match(output, string.format([[(.*)%s]], output_format))
+				output = string.format([[%s.%s]], output_no_ext, "mkv")
+				break
 			end
 		end
-		if audiocodec == nil then
-			for k, v in pairs(lossycodecs) do
-				if string.find(audioprobe.codec_name, v) then
-					audiocodec = "opus"
-					oldcodec = v
-					break
-				end
-			end
-		end
-		if audiocodec == nil then
-			print("couldn't find a programmed codec, passing through instead.")
-			audiopass = true
-		end
-	end --checks and sets audio codec
-	if (not audiopass) and (audiocodec ~= "flac") and audiobitrate == 0 then
-		if not audioprobe.bit_rate then
-			if string.find(audioprobe.codec_name, "opus") then
-				oldcodec = "opus"
-			end --checks if original codec was opus
-			if oldcodec == "opus" then
-				audiopass = true
-			else
-				print("Could not find original audio bitrate, setting to safe default")
-				audiobitrate = 128000
-			end
-		else
-			audiobitrate = tonumber(audioprobe.bit_rate) / 2
-		end --decides bitrate and whether or not to just pass audio through.
+		audio_command = flac_command
+	end --sets audio_command
+	if audio_codec == "pass" then
+		audio_command = pass_command
 	end
-	if not audiopass then
-		if audiocodec == "opus" then
-			audiocmd = opuscmd(audiobitrate)
-		end
-		if audiocodec == "flac" then
-			local output_format = pl.path.extension(output)
-			for key, value in pairs(no_flac_extensions) do
-				if string.match(output_format, value) then
-					local output_no_ext = string.match(output, string.format([[(.*)%s]], output_format))
-					print(output_no_ext)
-					output = string.format([[%s.%s]], output_no_ext, "mkv")
-					print(output)
-					break
-				end
-			end
-			if output_format == ".webm" then
-			end
-			audiocmd = flaccmd
-		end --sets audiocmd
-	else
-		audiocmd = passcmd
-	end
-	if not audiocmd then
+	if not audio_command then
 		print("I dont know what went wrong")
 		return "error"
 	end
-	return audiocmd, output
+	return audio_command, output
 end
-return getaudio
+return get_audio

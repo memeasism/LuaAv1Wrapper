@@ -15,9 +15,9 @@ local function getquality(input, ffprobe, gpu, args, pl)
 	}
 	local resnumber = tonumber(ffprobe.video.streams[1].height) --sets the resolution string to a number
 	if not videoquality then
-		if not resnumber then
+		if (not resnumber) or (resnumber == "error") then
 			print("Failed to get resolution to set quality")
-			pl.utils.quit()
+			return "error"
 		end
 		if resnumber <= 480 then
 			if gpu == 0 then

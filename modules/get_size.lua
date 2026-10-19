@@ -19,7 +19,7 @@ local function getsize(input, ffprobe, pl)
 	if not aspectprobe then
 		if not (width and height) then
 			print("No aspect ratio or video dimensions, what is up here?")
-			pl.utils.quit()
+			return "error"
 		end
 		if not sar then
 			print("Setting aspect ratio to the videos dimensions, neither PAR or DAR are available.")

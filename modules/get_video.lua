@@ -127,6 +127,30 @@ local function getvideo(
 		end
 		return result
 	end
+	local function progress_bar(total, threads, linda)
+		local completed = 0
+		local finished = false
+		while not finished do
+			local key, val = linda:receive(0.1, "scene")
+			if key == "scene" and val then
+				completed = completed + 1
+				local percent = math.floor((completed / total) * 100)
+				local filled = math.floor(percent / 2)
+				local bar = string.rep("=", filled) .. string.rep(" ", 50 - filled)
+				io.write(string.format("\r[%s] %d%% (%d/%d)", bar, percent, completed, total))
+				io.flush()
+			end
+
+			finished = true
+			for _, result in ipairs(threads) do
+				if result ~= "done" and result ~= "error" then
+					finished = false
+					break
+				end
+			end
+		end
+		print("\n")
+	end
 	for key, value in pairs(no_subtitle_extensions) do
 		if output_format:match(value) then
 			skip_subtitles = "-sn"
@@ -217,14 +241,15 @@ local function getvideo(
 		print("Using ffmpeg to detect scenes so we can test quality on multiple scenes!")
 		print(vmaf_split_command)
 		local count = 1
-		local success
-		while (not success) and count < 5 do
-			count = count + 1
-			success = utils.execute(vmaf_split_command)
-		end
-		if not success then
-			get_frames(true)
-			goto reset
+		for i = 1, 5 do
+			local success = utils.execute(vmaf_split_command)
+			if success then
+				break
+			end
+			if count == 5 then
+				get_frames(true)
+				goto reset
+			end
 		end
 		if not scenes then
 			scenes = pl.file.read(txt) --read the output of ffmpeg scene detection
@@ -258,37 +283,42 @@ local function getvideo(
 		end
 		for i, v in ipairs(results) do
 			local file = utils.readfile(cat_txt) or ""
-			local success = pl.utils.writefile(
-				cat_txt,
-				string.format(
-					[[%s
-file '%s']],
-					file,
-					v
-				)
-			)
-			local count = 0
-			while (not success) or count < 100000 do
-				count = count + 1
+
+			for i = 1, 100 do
+				local success = pl.utils.writefile(cat_txt, string.format("%s\nfile '%s'", file, v))
+				if success then
+					break
+				end
+				if count == 100 then
+					print("Failed to write the cat file for ffmpeg, skipping.")
+					return "error"
+				end
 			end
 		end
 		local command = remux(input)
 		print(command)
-		local count = 1
-		local success
-		while (not success) and count < 5 do
-			count = count + 1
-			success = utils.executeex(command)
+		for i = 1, 5 do
+			local success = utils.executeex(command)
+			if success then
+				break
+			end
+			if i == 5 then
+				print("Failed to remux video, skipping")
+				return "error"
+			end
 		end
 		if not args.keep then
 			for i, v in ipairs(results) do
 				pl.file.delete(v)
+				pl.file.delete(txt)
+				pl.file.delete(cat_txt)
 			end
 		end
 		return "parallel"
 	end
 
 	local parallel_command = lanes.gen("*", parallel_encoding)
+	local linda = lanes.linda()
 	--these set the commands for encoding
 	if video_codec == "av1" then
 		if gpu == 0 then
@@ -309,6 +339,7 @@ file '%s']],
 			if parallel then
 				local current_worker = 0
 				scenes = get_scenes()
+				local total = scenes[#scenes][3]
 				scenes = split_table(scenes, workers)
 				for i, v in ipairs(scenes) do
 					current_worker = current_worker + 1
@@ -333,12 +364,18 @@ file '%s']],
 							total_frames,
 							temp_folder,
 							resume,
-							noise
+							noise,
+							linda
 						)
 					)
 				end
-				for i, v in ipairs(threads) do
-					local result = v
+				print("Progress for parallel encoding:")
+				progress_bar(total, threads, linda)
+				for i, result in ipairs(threads) do
+					if result == "error" then
+						return "error"
+					end
+
 					for _, r in ipairs(result) do
 						for _, out in ipairs(r) do
 							table.insert(results, out)
@@ -371,6 +408,7 @@ file '%s']],
 						end
 					end
 				end
+				local total = scene_frames[#scene_frames][3]
 				scene_frames = split_table(scene_frames, vmaf_workers)
 				for i, v in ipairs(scene_frames) do
 					table.insert(
@@ -398,8 +436,13 @@ file '%s']],
 						)
 					)
 				end
+				print("Progress for vmaf testing:")
+				progress_bar(total, threads, linda)
 				for i, v in ipairs(threads) do
 					local result = v
+					if result == "error" then
+						return "error"
+					end
 					for _, r in ipairs(result) do
 						for _, quality in ipairs(r) do
 							table.insert(results, quality)
@@ -453,6 +496,9 @@ file '%s']],
 				end
 				for i, v in ipairs(threads) do
 					local result = v
+					if result == "error" then
+						return "error"
+					end
 					for _, r in ipairs(result) do
 						for _, out in ipairs(r) do
 							table.insert(results, out)
@@ -469,7 +515,7 @@ file '%s']],
 	end --sets and runs encoding commands
 	if not video_command then
 		print("Failed to get video command")
-		utils.quit()
+		return "error"
 	end
 	if video_command ~= "skip" then
 		local command_base

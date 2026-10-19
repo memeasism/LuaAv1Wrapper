@@ -44,11 +44,11 @@ local function get_vmaf(
 	local current_vmaf = 0
 	local current_command
 	local scene_frames = {}
-	local count = 0
 	local limit = 51
 	local old_cq = limit
 	local ceiling = old_cq
 	local floor = 2
+	local break_loop
 	if previous_cq then
 		old_cq = math.min(((previous_cq + 6) - (floor / 2)), (limit - (floor / 2))) * 2
 	end
@@ -77,12 +77,16 @@ local function get_vmaf(
 			ffv1_command,
 			reference
 		)
-		count = 0
-		local reference_success
-		while not reference_success and count < 5 do
+		for i = 1, 5 do
+			local reference_success = utils.executeex(reference_command)
+			if reference_success then
+				break
+			end
 			pl.file.delete(reference)
-			reference_success = utils.executeex(reference_command)
-			count = count + 1
+			if i == 5 then
+				print("Failed to encode refrence, skipping")
+				return "error"
+			end
 		end
 		while ceiling >= floor do
 			cq = math.floor((floor + ceiling) / 2)
@@ -90,46 +94,47 @@ local function get_vmaf(
 			local command = video_command(cq, args, 0)
 			local temporary_command =
 				string.format([[ffmpeg -i "%s" -map 0:v:0 %s "%s"]], reference, command, temporary)
-			local command_success
-			local success, returncode, command_out, errout
-			count = 0
-			while not command_success and count < 5 do
-				count = count + 1
-				command_success = utils.executeex(temporary_command)
-			end
-			count = 0
-			if command_success then
-				while not success and count < 5 do
-					success, returncode, command_out, errout = utils.executeex(vmaf_command) --not sure why but ffmpeg puts this stuff in the err out at least on windows
+			for i = 1, 5 do
+				local command_success = utils.executeex(temporary_command)
+				if command_success then
+					break
+				end
+				if i == 5 then
+					print("Failed to encode temporary file, skipping")
+					return "error"
 				end
 			end
-			if success then
-				local vmaf_string = string.match(errout, "VMAF score:%s*([%d.]+)")
-				local vmaf_score = tonumber(vmaf_string)
+			for i = 1, 5 do
+				local success, returncode, command_out, errout = utils.executeex(vmaf_command) --not sure why but ffmpeg puts this stuff in the err out at least on windows
+				if success then
+					local vmaf_string = string.match(errout, "VMAF score:%s*([%d.]+)")
+					local vmaf_score = tonumber(vmaf_string)
 
-				if vmaf_score then
-					current_vmaf = vmaf_score
-					table.insert(vmaf_values, { vmaf_score, cq })
-					if current_vmaf >= target_vmaf then
-						local difference = current_vmaf - target_vmaf
-						video_quality = cq
-						if difference <= 1 then
-							break
+					if vmaf_score then
+						current_vmaf = vmaf_score
+						table.insert(vmaf_values, { vmaf_score, cq })
+						if current_vmaf >= target_vmaf then
+							local difference = current_vmaf - target_vmaf
+							video_quality = cq
+							if difference <= 1 then
+								break_loop = true
+								break
+							end
+							floor = cq + 1
+						else
+							ceiling = cq - 1
 						end
-						floor = cq + 1
+						if ceiling > limit then
+							ceiling = limit
+						end
 					else
-						ceiling = cq - 1
+						print("Failed to parse a VMAF Score! Skipping!")
+						return "error"
 					end
-					if ceiling > limit then
-						ceiling = limit
-					end
-				else
-					print("Failed to parse a VMAF Score! Quitting!")
-					pl.utils.quit()
 				end
-			else
-				print("VMAF failed to run! Quitting!")
-				pl.utils.quit()
+			end
+			if break_loop then
+				break
 			end
 		end
 		if not video_quality then
