@@ -11,13 +11,13 @@ local function get_colors(ffprobe)
 			return "error"
 		end
 	end
-	local color_flags = string.format(
-		"-color_primaries %s -color_range %s -colorspace %s -color_trc %s",
+	local color_filters = string.format(
+		"setparams=color_primaries=%s:range=%s:colorspace=%s:color_trc=%s",
 		colors[1],
 		colors[2],
 		colors[3],
 		colors[4]
 	)
-	return color_flags
+	return color_filters
 end
 return get_colors

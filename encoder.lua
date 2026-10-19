@@ -117,7 +117,7 @@ else
 end
 for key, file in pairs(input) do --repeats these functions for all input files
 	local ffprobe = get_ffprobe(file, pl, cjson) --gets ffprobe info for encoding, and also verifies input is a real video file
-	if not ffprobe then
+	if not ffprobe or ffprobe == "error" then
 		--if ffprobe fails tell the user
 		print(string.format("Not a valid input file: %s, skipping.", file))
 	elseif ffprobe.video.streams[1] then --if there is a video stream then run the next commands

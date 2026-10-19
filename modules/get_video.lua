@@ -37,6 +37,7 @@ local function getvideo(
 	local fps_number = tonumber(fps_table.fpsdividendtxt) / tonumber(fps_table.fpsdivisortxt)
 	local total_frames
 	local nb_frames = ffprobe.video.streams[1].nb_frames
+	local noise
 	local fallback_frames = ffprobe.video.format.duration
 	local keyframe_interval = math.floor(fps_number * 10)
 	local scenes
@@ -201,11 +202,12 @@ local function getvideo(
 	--define the command functions
 	local function base(vspipe, file, pre_roll)
 		local command = string.format(
-			[[%s ffmpeg -i "%s" -f yuv4mpegpipe -i pipe: -filter_complex "[1:v:0]trim=start_frame=%s,setpts=PTS-STARTPTS,setdar=%s[out]" -map "[out]" -map 0:a? -map 0:s? -c:s copy %s -async 0 %s]],
+			[[%s ffmpeg -i "%s" -f yuv4mpegpipe -i pipe: -filter_complex "[1:v:0]trim=start_frame=%s,setpts=PTS-STARTPTS,setdar=%s,%s[out]" -map "[out]" -map 0:a? -map 0:s? -c:s copy %s -async 0]],
 			vspipe,
 			file,
 			pre_roll,
 			aspect,
+			colors,
 			skip_subtitles
 		)
 		return command
