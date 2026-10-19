@@ -292,6 +292,7 @@ local function getvideo(
 		return scenes
 	end
 	local function parallel_final(results)
+		pl.file.delete(cat_txt)
 		local function alphanumsort(o)
 			table.sort(o, function(a, b)
 				local number_a = scene_match(a)
