@@ -146,18 +146,18 @@ local function getvideo(
 					local eta_hours = math.floor(eta / 3600)
 					local eta_minutees = math.floor((eta % 3600) / 60)
 					local eta_seconds = eta % 60
-					speed_string = string.format("FPS: %s ETA: %s:%s:%s")
+					speed_string = string.format("FPS: %s ETA: %s:%s:%s", fps, eta_hours, eta_minutes, eta_seconds)
 				end
 				local percent = math.floor((completed / total) * 100)
 				local filled = math.floor(percent / 2)
 				local bar = string.rep("=", filled) .. string.rep(" ", 50 - filled)
-				io.write(string.format("\r[%s] %s %d%% (%d/%d)", bar, speed_string, percent, completed, total))
+				io.write(string.format("\r[%s] %s %s%% (%s/%s)", bar, speed_string, percent, completed, total))
 				io.flush()
 			end
 
 			finished = true
-			for _, result in ipairs(threads) do
-				if not result[1] and result ~= "error" then
+			for _, thread in ipairs(threads) do
+				if thread.status ~= "done" and thread.status ~= "error" and thread ~= "error" then
 					finished = false
 					break
 				end
@@ -422,7 +422,7 @@ local function getvideo(
 						end
 					end
 				end
-				local total = scene_frames[#scene_frames][3]
+				local total = #scene_frames
 				scene_frames = split_table(scene_frames, vmaf_workers)
 				for i, v in ipairs(scene_frames) do
 					table.insert(
@@ -446,7 +446,8 @@ local function getvideo(
 							total_frames,
 							temp_folder,
 							resume,
-							noise
+							noise,
+							linda
 						)
 					)
 				end
@@ -480,6 +481,7 @@ local function getvideo(
 			if parallel then
 				local current_worker = 0
 				scenes = get_scenes()
+				local total = scenes[#scenes][3]
 				scenes = split_table(scenes, workers)
 				for i, v in ipairs(scenes) do
 					current_worker = current_worker + 1
@@ -504,10 +506,12 @@ local function getvideo(
 							total_frames,
 							temp_folder,
 							resume,
-							noise
+							noise,
+							linda
 						)
 					)
 				end
+				progress_bar(total, threads, linda, false)
 				for i, v in ipairs(threads) do
 					local result = v
 					if result == "error" then

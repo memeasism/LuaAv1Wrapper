@@ -5,7 +5,7 @@ local function ffprobe(input, pl, cjson)
 	local video_command =
 		string.format('ffprobe -v quiet -print_format json -show_streams -show_format -select_streams v:0 "%s"', input)
 	local audio_command =
-		string.format('ffprobe -v quiet -print_format json -show_streams -show_format -select_streams v:0 "%s"', input)
+		string.format('ffprobe -v quiet -print_format json -show_streams -show_format -select_streams a:0 "%s"', input)
 
 	for i = 1, 5 do
 		if not video_success then

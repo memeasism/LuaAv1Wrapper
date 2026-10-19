@@ -19,7 +19,7 @@ local function get_audio(input, output, no_flac_extensions, ffprobe, args, pl)
 	} --list of lossy codecs the source can be
 	local audio_command --prepares the audiocmd
 	local audio_pass --prepares if the audio is passed
-	local audio_codec = args.audio --sets codec
+	local audio_codec = args.audio or nil --sets codec
 	local pass_command = " -c:a copy" --the command used if audio is to be passed
 	local function opus_command(bitrate)
 		local command = string.format(
@@ -49,12 +49,13 @@ local function get_audio(input, output, no_flac_extensions, ffprobe, args, pl)
 		print("Could not find audio bitrate")
 		return "error"
 	end
+
 	for k, v in pairs(passcodecs) do
-		if string.find(codec_name, v) then
+		if codec_name:find(v) then
 			audio_pass = true
 			audio_codec = "pass"
 			for l, w in pairs(problemcodecs) do
-				if string.find(codec_name, w) then
+				if codec_name:find(w) then
 					pass_command = string.format("%s -copytb 0 -max_interleave_delta 0", pass_command)
 				end
 			end
@@ -63,7 +64,7 @@ local function get_audio(input, output, no_flac_extensions, ffprobe, args, pl)
 	end
 	if not audio_codec then
 		for k, v in pairs(losslesscodecs) do
-			if string.find(codec_name, v) then
+			if codec_name:find(v) then
 				audio_codec = "flac"
 				break
 			end
@@ -71,14 +72,14 @@ local function get_audio(input, output, no_flac_extensions, ffprobe, args, pl)
 	end
 	if not audio_codec then
 		for k, v in pairs(lossycodecs) do
-			if string.find(codec_name, v) then
+			if codec_name:find(v) then
 				audio_codec = "opus"
 				audio_command = opus_command(audio_bitrate)
 				break
 			end
 		end
 	end
-	if not audio_codec then
+	if audio_codec == nil then
 		print("couldn't find a programmed codec, passing through instead.")
 		audio_pass = true
 		audio_codec = "pass"
