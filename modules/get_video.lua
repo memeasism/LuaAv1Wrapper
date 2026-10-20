@@ -36,7 +36,6 @@ local function getvideo(
 	local colors = get_colors(ffprobe)
 	local fps_number = tonumber(fps_table.fpsdividendtxt) / tonumber(fps_table.fpsdivisortxt)
 	local total_frames
-	local nb_frames = ffprobe.video.streams[1].nb_frames
 	local noise
 	local fallback_frames = ffprobe.video.format.duration
 	local keyframe_interval = math.floor(fps_number * 10)
@@ -84,17 +83,13 @@ local function getvideo(
 		if not path.isfile(txt) then
 			path.mkdir(temp_folder)
 			if parallel and not video_quality and not skip_vmaf then
-				if nb_frames and skip_to_count == false then
-					total_frames = tonumber(nb_frames) - 1
+				print("Counting frames, sadly, this is much slower, but 100000000% more reliable than ffprobe.")
+				total_frames = count_frames(input, pl)
+				if total_frames then
+					total_frames = total_frames - 1
 				else
-					print("Could not get frame count from ffprobe, counting frames!")
-					total_frames = count_frames(input, pl)
-					if total_frames then
-						total_frames = total_frames - 1
-					else
-						print("Counting frames failed, time to guess!")
-						total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
-					end
+					print("Counting frames failed, time to guess!")
+					total_frames = math.floor(((tonumber(fallback_frames) * fps_number) + 0.5)) - 5 --I had issues with subtracting smaller numbers, 5 seems to be safe
 				end
 				if (not total_frames) or (total_frames == "error") then
 					print("Error getting file duration, skipping!")
@@ -115,7 +110,7 @@ local function getvideo(
 			total_frames = scenes[#scenes][2] - 1
 		end
 	end
-	get_frames(false)
+	get_frames()
 
 	local skip_subtitles
 	local video_command
@@ -255,7 +250,6 @@ local function getvideo(
 	end
 
 	local function get_scenes()
-		::reset::
 		if resume and path.isfile(txt) then
 			return scenes
 		end
@@ -289,8 +283,8 @@ local function getvideo(
 				break
 			end
 			if count == 5 then
-				get_frames(true)
-				goto reset
+				print("Failed to detect scenes, skipping")
+				return "error"
 			end
 		end
 		if not scenes then

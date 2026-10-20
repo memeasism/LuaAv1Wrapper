@@ -21,7 +21,7 @@ local function getfilters(input, content, fps, args, pl)
 			print("Failed to format filters to ffmpeg")
 			return "error"
 		end
-		if utils.readfile(value) then
+		if path.isfile(value) then
 			formatted = "-a " .. key .. "=" .. utils.quote_arg(value)
 			return formatted
 		end
