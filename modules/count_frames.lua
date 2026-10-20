@@ -1,6 +1,6 @@
 local function count_frames(input, pl)
 	local ffprobe_command = string.format(
-		[[ffprobe -v error -count_frames -thread_type frame -threads auto -select_streams v:0 -show_entries stream=nb_read_frames -of default=noprint_wrappers=1:nokey=1 "%s"]],
+		[[ffprobe -v error -count_frames -thread_type frame -threads 0 -select_streams v:0 -show_entries stream=nb_read_frames -of default=noprint_wrappers=1:nokey=1 "%s"]],
 		input
 	)
 	for i = 1, 5 do
