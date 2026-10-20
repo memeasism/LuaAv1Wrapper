@@ -139,7 +139,13 @@ local function getvideo(
 		local completed = 0
 		local finished = false
 		local start_time = os.time()
-		local completed_frames = 0
+		local completed_frames = 0 --tracks only the frames completed from resume onward
+		local total_completed_frames = 0 --tracks all completed frames
+		local percent = math.floor((total_completed_frames / frames) * 100)
+		local filled = math.floor(percent / 2)
+		local bar = string.rep("=", filled) .. string.rep(" ", 50 - filled)
+		io.write(string.format("\r[%s] %s%% (%s/%s)", bar, percent, completed, total))
+		io.flush()
 		while not finished do
 			local key, val = linda:receive(0.1, "scene")
 			if key == "scene" and val then
@@ -152,24 +158,26 @@ local function getvideo(
 				local current_time = os.time()
 				local elapsed = current_time - start_time
 				local speed_string = ""
+
 				if not skip then
 					completed_frames = completed_frames + scene_frames
+					total_completed_frames = total_completed_frames + scene_frames
 				else
-					frames = frames - scene_frames
+					total_completed_frames = total_completed_frames + scene_frames
 				end
-				if elapsed > 0 then
+				if elapsed > 0 and completed_frames > 0 then
 					local fps = completed_frames / elapsed
-					local time_per_scene = elapsed / completed
-					local eta = math.floor(time_per_scene * (total - completed))
+					local time_per_frame = elapsed / completed_frames
+					local eta = math.floor(time_per_frame * (frames - total_completed_frames))
 					local eta_hours = math.floor(eta / 3600)
 					local eta_minutes = math.floor((eta % 3600) / 60)
 					local eta_seconds = eta % 60
 					speed_string =
 						string.format("FPS: %.2f ETA: %02d:%02d:%02d", fps, eta_hours, eta_minutes, eta_seconds)
 				end
-				local percent = math.floor((completed / total) * 100)
-				local filled = math.floor(percent / 2)
-				local bar = string.rep("=", filled) .. string.rep(" ", 50 - filled)
+				percent = math.floor((total_completed_frames / frames) * 100)
+				filled = math.floor(percent / 2)
+				bar = string.rep("=", filled) .. string.rep(" ", 50 - filled)
 				io.write(string.format("\r[%s] %s %s%% (%s/%s)", bar, speed_string, percent, completed, total))
 				io.flush()
 			end
@@ -432,7 +440,7 @@ local function getvideo(
 						if not scene_frames[random] then
 							table.insert(scene_frames, scenes[random])
 							count = count + 1
-							scenes_total_frames = scenes_total_frames + (scenes[random][1] - scenes[random][2])
+							scenes_total_frames = scenes_total_frames + (scenes[random][2] - scenes[random][1])
 						end
 					end
 				else --both of these if statements just add random scenes to a table, 4 by default but in rare instances if there are less than 4 it just does them all
@@ -442,7 +450,7 @@ local function getvideo(
 						if not scene_frames[random] then
 							scene_frames[random] = scenes[random]
 							count = count + 1
-							scenes_total_frames = scenes_total_frames + scenes[random][1] - scenes[random][2]
+							scenes_total_frames = scenes_total_frames + scenes[random][2] - scenes[random][1]
 						end
 					end
 				end
