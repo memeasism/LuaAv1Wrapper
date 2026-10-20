@@ -17,10 +17,12 @@ local function get_vmaf(
 	previous_cq,
 	pre_roll
 )
+	local vmaf_filters = "scale=-2:1080:flags=lanczos"
 	local vmaf_model = "vmaf_v0.6.1"
 	if tonumber(ffprobe.video.streams[1].height) then
 		if tonumber(ffprobe.video.streams[1].height) >= 2160 then
 			vmaf_model = "vmaf_4k_v0.6.1"
+			vmaf_filters = "scale=-2:2160:flags=lanczos"
 		end
 	end
 	local target_vmaf = args.vmaf or 98
@@ -66,9 +68,11 @@ local function get_vmaf(
 		local start_time = value[1]
 		local stop_time = value[2] - 1
 		local vmaf_command = string.format(
-			[[ffmpeg -i "%s" -i "%s" -filter_complex "libvmaf=model=version=%s:n_threads=2:n_subsample=2" -f null -]],
+			[[ffmpeg -i "%s" -i "%s" -filter_complex "[0:v]%s[distorted];[1:v]%s[refrence];[distorted][refrence]libvmaf=model=version=%s:n_threads=2:n_subsample=2" -f null -]],
 			temporary,
 			reference,
+			vmaf_filters,
+			vmaf_filters,
 			vmaf_model
 		)
 		local reference_command = string.format(
